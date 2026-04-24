@@ -104,7 +104,7 @@ export default function Settings({ onRefresh }) {
         <div style={{ padding: '4px 0' }}>
           <div className="form-label" style={{ marginBottom: 10 }}>About</div>
           <div className="form-hint" style={{ lineHeight: 1.8 }}>
-            League Tracker is a personal desktop app for viewing your summoner profile,
+            LoLMoonBase is a personal desktop app for viewing your summoner profile,
             champion mastery, challenge progress, and match history.<br />
             Your API key is stored <strong style={{ color: 'var(--text)' }}>locally only</strong> — never sent to any third-party server.
             All requests go directly to <strong style={{ color: 'var(--gold)' }}>api.riotgames.com</strong>.

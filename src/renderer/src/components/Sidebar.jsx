@@ -30,11 +30,11 @@ export default function Sidebar({ page, setPage, summoner, ddragon }) {
           <svg className="brand-hex" viewBox="0 0 40 46" xmlns="http://www.w3.org/2000/svg">
             <path d="M20 0L40 11.5V34.5L20 46L0 34.5V11.5L20 0Z" />
             <path d="M20 8L32 15V29L20 36L8 29V15L20 8Z" fill="#050505" />
-            <text x="20" y="27" textAnchor="middle" fontSize="13" fontWeight="bold" fill="#C89B3C" fontFamily="Cinzel, Georgia, serif">LT</text>
+            <text x="20" y="27" textAnchor="middle" fontSize="11" fontWeight="bold" fill="#C89B3C" fontFamily="Cinzel, Georgia, serif">LoL</text>
           </svg>
-          <span className="brand-name">League</span>
+          <span className="brand-name">MoonBase</span>
         </div>
-        <div className="brand-sub">Tracker</div>
+        <div className="brand-sub">LoLMoonBase</div>
       </div>
 
       <nav className="sidebar-nav">

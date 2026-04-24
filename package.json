@@ -1,5 +1,5 @@
 {
-  "name": "league-tracker",
+  "name": "lolmoonbase",
   "version": "1.0.0",
   "description": "Personal League of Legends stat tracker desktop application",
   "main": "out/main/index.js",

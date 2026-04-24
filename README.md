@@ -1,4 +1,4 @@
-# League Tracker
+# LoLMoonBase
 
 A personal League of Legends desktop stat tracker built with Electron.
 
