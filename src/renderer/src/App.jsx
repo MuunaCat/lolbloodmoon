@@ -4,9 +4,10 @@ import Profile from './pages/Profile'
 import Champions from './pages/Champions'
 import Challenges from './pages/Challenges'
 import Matches from './pages/Matches'
+import Trackers from './pages/Trackers'
 import Settings from './pages/Settings'
 
-const PAGES = { profile: Profile, champions: Champions, challenges: Challenges, matches: Matches, settings: Settings }
+const PAGES = { profile: Profile, champions: Champions, challenges: Challenges, matches: Matches, trackers: Trackers, settings: Settings }
 
 export default function App() {
   const [page, setPage] = useState('profile')

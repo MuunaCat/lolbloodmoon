@@ -125,6 +125,12 @@ app.whenReady().then(() => {
     return riotGet(`https://${PLATFORM[region]}.api.riotgames.com/lol/champion-mastery/v4/champion-masteries/by-summoner/${summonerId}/top?count=30`, apiKey)
   })
 
+  ipcMain.handle('api:all-mastery', async (_, summonerId) => {
+    const apiKey = store.get('apiKey', '')
+    const region = store.get('region', 'EUW')
+    return riotGet(`https://${PLATFORM[region]}.api.riotgames.com/lol/champion-mastery/v4/champion-masteries/by-summoner/${summonerId}`, apiKey)
+  })
+
   ipcMain.handle('api:challenges', async (_, puuid) => {
     const apiKey = store.get('apiKey', '')
     const region = store.get('region', 'EUW')
