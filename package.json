@@ -7,8 +7,28 @@
   "license": "MIT",
   "scripts": {
     "dev": "electron-vite dev",
-    "build": "electron-vite build",
+    "build": "electron-vite build && electron-builder",
     "start": "electron-vite preview"
+  },
+  "build": {
+    "appId": "com.lolmoonbase.app",
+    "productName": "LoLMoonBase",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "out/**/*"
+    ],
+    "win": {
+      "target": "nsis",
+      "requestedExecutionLevel": "asInvoker"
+    },
+    "nsis": {
+      "oneClick": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "LoLMoonBase"
+    }
   },
   "dependencies": {
     "electron-store": "^8.1.0"
@@ -16,6 +36,7 @@
   "devDependencies": {
     "@vitejs/plugin-react": "^4.3.1",
     "electron": "^28.2.10",
+    "electron-builder": "^26.8.1",
     "electron-vite": "^2.1.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0"
