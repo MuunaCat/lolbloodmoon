@@ -137,6 +137,12 @@ app.whenReady().then(() => {
     return riotGet(`https://${PLATFORM[region]}.api.riotgames.com/lol/challenges/v1/player-data/${puuid}`, apiKey)
   })
 
+  ipcMain.handle('api:challenge-configs', async () => {
+    const apiKey = store.get('apiKey', '')
+    const region = store.get('region', 'EUW')
+    return riotGet(`https://${PLATFORM[region]}.api.riotgames.com/lol/challenges/v1/challenges/config`, apiKey)
+  })
+
   ipcMain.handle('api:match-ids', async (_, puuid) => {
     const apiKey = store.get('apiKey', '')
     const region = store.get('region', 'EUW')

@@ -8,6 +8,7 @@ contextBridge.exposeInMainWorld('api', {
   getMastery: (id) => ipcRenderer.invoke('api:mastery', id),
   getAllMastery: (id) => ipcRenderer.invoke('api:all-mastery', id),
   getChallenges: (puuid) => ipcRenderer.invoke('api:challenges', puuid),
+  getChallengeConfigs: () => ipcRenderer.invoke('api:challenge-configs'),
   getMatchIds: (puuid) => ipcRenderer.invoke('api:match-ids', puuid),
   getMatch: (id) => ipcRenderer.invoke('api:match', id),
   getDDragon: () => ipcRenderer.invoke('api:ddragon'),
