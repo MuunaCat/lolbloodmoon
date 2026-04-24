@@ -61,8 +61,8 @@ body {
   height: 42px;
   display: flex;
   align-items: center;
-  justify-content: flex-end;
-  padding: 0 14px;
+  justify-content: flex-start;
+  padding: 0 10px;
   border-bottom: 1px solid var(--border);
   flex-shrink: 0;
 }
@@ -70,23 +70,28 @@ body {
 .win-controls {
   -webkit-app-region: no-drag;
   display: flex;
-  gap: 7px;
+  gap: 2px;
   align-items: center;
 }
 
-.win-btn {
-  width: 13px;
-  height: 13px;
-  border-radius: 50%;
+.win-btn-win {
+  width: 32px;
+  height: 28px;
   border: none;
+  background: transparent;
+  color: var(--text-mid);
+  font-size: 13px;
   cursor: pointer;
-  transition: filter 0.15s;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.12s, color 0.12s;
   outline: none;
+  line-height: 1;
 }
-.win-btn:hover { filter: brightness(1.2); }
-.win-btn.close   { background: #FF5F57; }
-.win-btn.min     { background: #FFBD2E; }
-.win-btn.max     { background: #27C93F; }
+.win-btn-win:hover { background: var(--bg-hover); color: var(--text); }
+.win-btn-win.close:hover { background: #C84040; color: #fff; }
 
 .sidebar-brand {
   padding: 22px 20px 18px;

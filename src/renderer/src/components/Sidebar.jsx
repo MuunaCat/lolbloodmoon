@@ -19,9 +19,9 @@ export default function Sidebar({ page, setPage, summoner, ddragon }) {
     <div className="sidebar">
       <div className="sidebar-titlebar">
         <div className="win-controls">
-          <button className="win-btn close"   onClick={() => window.api.window.close()} />
-          <button className="win-btn min"     onClick={() => window.api.window.minimize()} />
-          <button className="win-btn max"     onClick={() => window.api.window.maximize()} />
+          <button className="win-btn-win min" title="Minimize" onClick={() => window.api.window.minimize()}>&#x2013;</button>
+          <button className="win-btn-win max" title="Maximize" onClick={() => window.api.window.maximize()}>&#x25A1;</button>
+          <button className="win-btn-win close" title="Close"  onClick={() => window.api.window.close()}>&#x2715;</button>
         </div>
       </div>
 
