@@ -6,7 +6,7 @@ const Store = require('electron-store')
 const store = new Store()
 
 const PLATFORM = {
-  NA: 'na1', EUW: 'euw1', EUNE: 'eune1', KR: 'kr',
+  NA: 'na1', EUW: 'euw1', EUNE: 'eun1', KR: 'kr',
   BR: 'br1', JP: 'jp1', LAN: 'la1', LAS: 'la2',
   OCE: 'oc1', RU: 'ru', TR: 'tr1'
 }
