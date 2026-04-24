@@ -25,9 +25,10 @@ export default function App() {
   const [lcuStatus, setLcuStatus] = useState({ connected: false, phase: null })
   const [matchRefreshKey, setMatchRefreshKey] = useState(0)
 
-  const prevPhaseRef  = useRef(null)
-  const pollTimerRef  = useRef(null)
-  const lcuTimerRef   = useRef(null)
+  const prevPhaseRef    = useRef(null)
+  const lcuConnectedRef = useRef(false)
+  const pollTimerRef    = useRef(null)
+  const lcuTimerRef     = useRef(null)
 
   const loadApp = useCallback(async () => {
     setLoading(true)
@@ -66,17 +67,18 @@ export default function App() {
       const prev = prevPhaseRef.current
       const curr = status.phase
 
-      // Game just ended → wait 3 min then refresh matches (API delay)
+      // Game just ended → wait 3 min then refresh (Riot API processing delay)
       if (prev === 'InProgress' && curr === 'EndOfGame') {
         setTimeout(() => setMatchRefreshKey(k => k + 1), 3 * 60 * 1000)
       }
 
       // Client just disconnected → immediate refresh
-      if (prev !== null && !status.connected && lcuStatus.connected) {
+      if (prev !== null && !status.connected && lcuConnectedRef.current) {
         setMatchRefreshKey(k => k + 1)
       }
 
       prevPhaseRef.current = curr
+      lcuConnectedRef.current = status.connected
     }
 
     checkLcu()
@@ -107,6 +109,7 @@ export default function App() {
             summoner={summoner} ddragon={ddragon}
             appError={error} onRefresh={loadApp}
             matchRefreshKey={matchRefreshKey}
+            onManualRefresh={() => setMatchRefreshKey(k => k + 1)}
           />
         )}
       </div>

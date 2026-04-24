@@ -28,13 +28,14 @@ const MODE_LABEL = {
   TUTORIAL: 'Tutorial'
 }
 
-export default function Matches({ summoner, ddragon, appError, matchRefreshKey }) {
+export default function Matches({ summoner, ddragon, appError, matchRefreshKey, onManualRefresh }) {
   const [matchIds, setMatchIds]   = useState([])
   const [matches, setMatches]     = useState([])
   const [loading, setLoading]     = useState(false)
   const [loadingMore, setLMore]   = useState(false)
   const [error, setError]         = useState(null)
   const [loaded, setLoaded]       = useState(0)
+  const [lastUpdated, setLastUpdated] = useState(null)
 
   const championById = useMemo(() => {
     if (!ddragon) return {}
@@ -60,6 +61,7 @@ export default function Matches({ summoner, ddragon, appError, matchRefreshKey }
         const data = await fetchBatch(batch)
         setMatches(data)
         setLoaded(10)
+        setLastUpdated(new Date())
       })
       .catch(e => setError(e.message))
       .finally(() => setLoading(false))
@@ -79,7 +81,24 @@ export default function Matches({ summoner, ddragon, appError, matchRefreshKey }
 
   return (
     <div className="page">
-      <h1 className="page-title">Match History</h1>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 }}>
+        <h1 className="page-title" style={{ margin: 0, flex: 1 }}>Match History</h1>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexShrink: 0 }}>
+          {lastUpdated && (
+            <span style={{ fontSize: 11, color: 'var(--text-dim)' }}>
+              Updated {lastUpdated.toLocaleTimeString()}
+            </span>
+          )}
+          <button
+            className="btn-secondary"
+            style={{ padding: '7px 14px', fontSize: 12 }}
+            onClick={onManualRefresh}
+            disabled={loading}
+          >
+            {loading ? '...' : '↻ Refresh'}
+          </button>
+        </div>
+      </div>
 
       {loading && <div className="loading"><div className="spinner" /><span>Loading matches...</span></div>}
       {error && !loading && <div className="error-box">⚠ {error}</div>}
