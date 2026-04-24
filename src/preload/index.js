@@ -15,7 +15,12 @@ contextBridge.exposeInMainWorld('api', {
   lcu: {
     status: () => ipcRenderer.invoke('lcu:status'),
     live: () => ipcRenderer.invoke('lcu:live'),
-    gameflow: () => ipcRenderer.invoke('lcu:gameflow')
+    gameflow: () => ipcRenderer.invoke('lcu:gameflow'),
+    summoner: () => ipcRenderer.invoke('lcu:summoner'),
+    ranked: () => ipcRenderer.invoke('lcu:ranked'),
+    champSelect: () => ipcRenderer.invoke('lcu:champ-select'),
+    lobby: () => ipcRenderer.invoke('lcu:lobby'),
+    queueTime: () => ipcRenderer.invoke('lcu:queue-time')
   },
   saveLeaguePath: (p) => ipcRenderer.invoke('save-league-path', p),
   getLeaguePath: () => ipcRenderer.invoke('get-league-path'),

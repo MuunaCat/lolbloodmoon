@@ -235,6 +235,41 @@ app.whenReady().then(() => {
     catch { return null }
   })
 
+  ipcMain.handle('lcu:summoner', async () => {
+    const lf = readLockfile()
+    if (!lf) return null
+    try { return await lcuGet('/lol/summoner/v1/current-summoner', lf) }
+    catch { return null }
+  })
+
+  ipcMain.handle('lcu:ranked', async () => {
+    const lf = readLockfile()
+    if (!lf) return null
+    try { return await lcuGet('/lol/ranked/v1/current-summoner', lf) }
+    catch { return null }
+  })
+
+  ipcMain.handle('lcu:champ-select', async () => {
+    const lf = readLockfile()
+    if (!lf) return null
+    try { return await lcuGet('/lol/champ-select/v1/session', lf) }
+    catch { return null }
+  })
+
+  ipcMain.handle('lcu:lobby', async () => {
+    const lf = readLockfile()
+    if (!lf) return null
+    try { return await lcuGet('/lol/lobby/v2/lobby', lf) }
+    catch { return null }
+  })
+
+  ipcMain.handle('lcu:queue-time', async () => {
+    const lf = readLockfile()
+    if (!lf) return null
+    try { return await lcuGet('/lol/lobby/v2/lobby/matchmaking/search-state', lf) }
+    catch { return null }
+  })
+
   ipcMain.handle('save-league-path', (_, p) => {
     store.set('leaguePath', p)
     return true
