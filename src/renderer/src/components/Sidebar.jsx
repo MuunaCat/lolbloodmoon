@@ -4,10 +4,11 @@ const NAV = [
   { id: 'challenges', label: 'Challenges',  icon: '◆' },
   { id: 'matches',    label: 'Matches',     icon: '⊞' },
   { id: 'trackers',   label: 'Trackers',    icon: '◎' },
+  { id: 'live',       label: 'Live Game',   icon: '◉', live: true },
   { id: 'settings',   label: 'Settings',    icon: '⚙' }
 ]
 
-export default function Sidebar({ page, setPage, summoner, ddragon }) {
+export default function Sidebar({ page, setPage, summoner, ddragon, lcuStatus }) {
   const iconUrl = summoner && ddragon
     ? `https://ddragon.leagueoflegends.com/cdn/${ddragon.version}/img/profileicon/${summoner.profileIconId}.png`
     : null
@@ -39,16 +40,28 @@ export default function Sidebar({ page, setPage, summoner, ddragon }) {
       </div>
 
       <nav className="sidebar-nav">
-        {NAV.map(({ id, label, icon }) => (
-          <div
-            key={id}
-            className={`nav-item${page === id ? ' active' : ''}`}
-            onClick={() => setPage(id)}
-          >
-            <span className="nav-icon">{icon}</span>
-            <span>{label}</span>
-          </div>
-        ))}
+        {NAV.map(({ id, label, icon, live: isLive }) => {
+          const isInGame = lcuStatus?.phase === 'InProgress'
+          return (
+            <div
+              key={id}
+              className={`nav-item${page === id ? ' active' : ''}`}
+              onClick={() => setPage(id)}
+            >
+              <span className="nav-icon" style={isLive && isInGame ? { color: 'var(--win)' } : undefined}>
+                {icon}
+              </span>
+              <span>{label}</span>
+              {isLive && (
+                <span
+                  className="lcu-dot"
+                  style={{ background: lcuStatus?.connected ? (isInGame ? 'var(--win)' : 'var(--gold)') : '#444' }}
+                  title={lcuStatus?.connected ? (isInGame ? 'In Game' : 'Client open') : 'Client not detected'}
+                />
+              )}
+            </div>
+          )
+        })}
       </nav>
 
       <div className="sidebar-profile">

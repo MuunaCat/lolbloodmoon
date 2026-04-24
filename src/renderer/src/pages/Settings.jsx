@@ -6,6 +6,7 @@ export default function Settings({ onRefresh }) {
   const [apiKey, setApiKey]           = useState('')
   const [summonerName, setSummoner]   = useState('')
   const [region, setRegion]           = useState('EUW')
+  const [leaguePath, setLeaguePath]   = useState('')
   const [showKey, setShowKey]         = useState(false)
   const [saving, setSaving]           = useState(false)
   const [feedback, setFeedback]       = useState(null)
@@ -16,6 +17,7 @@ export default function Settings({ onRefresh }) {
       setSummoner(s.summonerName || '')
       setRegion(s.region || 'EUW')
     })
+    window.api.getLeaguePath().then(p => setLeaguePath(p || ''))
   }, [])
 
   const save = async () => {
@@ -25,6 +27,7 @@ export default function Settings({ onRefresh }) {
     setFeedback(null)
     try {
       await window.api.saveSettings({ apiKey: apiKey.trim(), summonerName: summonerName.trim(), region })
+      await window.api.saveLeaguePath(leaguePath.trim())
       setFeedback({ type: 'success', msg: 'Settings saved. Refreshing data...' })
       setTimeout(() => { onRefresh(); setFeedback(null) }, 1200)
     } catch (e) {
@@ -97,6 +100,23 @@ export default function Settings({ onRefresh }) {
           <button className="btn-primary" onClick={save} disabled={saving}>
             {saving ? 'Saving...' : 'Save & Refresh'}
           </button>
+        </div>
+
+        <div className="divider" />
+
+        <div className="form-group">
+          <label className="form-label">League of Legends Path (optional)</label>
+          <input
+            className="form-input"
+            type="text"
+            value={leaguePath}
+            onChange={e => setLeaguePath(e.target.value)}
+            placeholder="C:\Riot Games\League of Legends\lockfile"
+          />
+          <span className="form-hint">
+            Only needed if League is installed in a non-default location.
+            Leave blank to auto-detect. Points to the <strong style={{ color: 'var(--text)' }}>lockfile</strong> inside your LoL folder.
+          </span>
         </div>
 
         <div className="divider" />

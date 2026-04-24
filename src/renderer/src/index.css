@@ -712,6 +712,80 @@ body {
 .tier-GRANDMASTER { color: #E55B4D; }
 .tier-CHALLENGER  { color: #F0E6D3; }
 
+/* ── LCU dot ─────────────────────────────────── */
+.lcu-dot {
+  width: 7px; height: 7px;
+  border-radius: 50%;
+  margin-left: auto;
+  flex-shrink: 0;
+  transition: background 0.3s;
+}
+
+/* ── Live Game ───────────────────────────────── */
+.live-badge {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--win);
+  letter-spacing: 1px;
+  font-family: var(--font-b);
+  animation: pulse 1.5s ease-in-out infinite;
+}
+@keyframes pulse { 0%,100% { opacity: 1 } 50% { opacity: 0.5 } }
+
+.live-timer { font-size: 14px; color: var(--text-mid); font-family: var(--font-b); font-weight: 400; }
+
+.live-empty {
+  display: flex; flex-direction: column; align-items: center;
+  justify-content: center; padding: 80px 0; gap: 10px; text-align: center;
+}
+.live-empty-icon { font-size: 40px; color: var(--text-dim); margin-bottom: 8px; }
+.live-empty-title { font-family: var(--font-h); font-size: 18px; color: var(--text-mid); }
+.live-empty-sub { font-size: 13px; color: var(--text-dim); }
+.live-empty-hint { font-size: 11px; color: var(--text-dim); margin-top: 4px; }
+
+.live-player-card { margin-bottom: 20px; }
+.live-player-header { display: flex; align-items: baseline; gap: 12px; margin-bottom: 16px; }
+.live-player-name { font-family: var(--font-h); font-size: 18px; color: var(--gold-light); }
+.live-player-champ { font-size: 13px; color: var(--text-dim); }
+
+.live-kda-row {
+  display: flex; align-items: center; gap: 16px;
+  margin-bottom: 16px;
+}
+.live-kda-block { text-align: center; }
+.live-kda-num { font-size: 24px; font-weight: 700; font-family: var(--font-h); line-height: 1; }
+.live-kda-label { font-size: 10px; color: var(--text-dim); margin-top: 3px; letter-spacing: 1px; text-transform: uppercase; }
+.live-kda-sep { font-size: 20px; color: var(--text-dim); }
+.live-kda-divider { width: 1px; height: 36px; background: var(--border-mid); margin: 0 4px; }
+
+.live-bars { display: flex; flex-direction: column; gap: 8px; }
+.live-bar-row { display: flex; align-items: center; gap: 10px; }
+.live-bar-label { font-size: 10px; text-transform: uppercase; letter-spacing: 1px; color: var(--text-dim); width: 30px; }
+.live-bar-val { font-size: 11px; color: var(--text-dim); width: 110px; text-align: right; }
+
+.stat-bar-track { height: 6px; background: var(--border-mid); border-radius: 3px; overflow: hidden; flex: 1; }
+.stat-bar-fill { height: 100%; border-radius: 3px; transition: width 0.4s ease; }
+
+.live-teams { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.live-team-title { font-family: var(--font-h); font-size: 13px; letter-spacing: 1px; margin-bottom: 10px; }
+.live-team-list { display: flex; flex-direction: column; gap: 6px; }
+
+.live-player-row {
+  display: flex; align-items: center; gap: 10px;
+  background: var(--bg-card); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 8px 12px;
+  transition: border-color 0.14s;
+}
+.live-player-row.me { border-color: var(--gold-border); background: var(--gold-dim); }
+.live-champ-img { width: 32px; height: 32px; border-radius: 5px; object-fit: cover; flex-shrink: 0; }
+.live-champ-placeholder { width: 32px; height: 32px; border-radius: 5px; background: var(--bg-hover); display: flex; align-items: center; justify-content: center; font-size: 16px; color: var(--text-dim); flex-shrink: 0; }
+.live-player-info { flex: 1; min-width: 0; }
+.live-player-row-name { font-size: 12px; font-weight: 600; color: var(--text); display: flex; align-items: center; gap: 6px; }
+.live-me-tag { font-size: 9px; background: var(--gold); color: #000; border-radius: 3px; padding: 1px 5px; font-family: var(--font-h); letter-spacing: 0.5px; }
+.live-player-champ-name { font-size: 10px; color: var(--text-dim); }
+.live-player-scores { display: flex; gap: 4px; font-size: 12px; font-weight: 600; flex-shrink: 0; }
+.live-player-cs { font-size: 11px; color: var(--text-dim); min-width: 40px; text-align: right; }
+
 /* ── Trackers ─────────────────────────────────── */
 .tracker-tabs {
   display: flex;

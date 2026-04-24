@@ -12,6 +12,13 @@ contextBridge.exposeInMainWorld('api', {
   getMatchIds: (puuid) => ipcRenderer.invoke('api:match-ids', puuid),
   getMatch: (id) => ipcRenderer.invoke('api:match', id),
   getDDragon: () => ipcRenderer.invoke('api:ddragon'),
+  lcu: {
+    status: () => ipcRenderer.invoke('lcu:status'),
+    live: () => ipcRenderer.invoke('lcu:live'),
+    gameflow: () => ipcRenderer.invoke('lcu:gameflow')
+  },
+  saveLeaguePath: (p) => ipcRenderer.invoke('save-league-path', p),
+  getLeaguePath: () => ipcRenderer.invoke('get-league-path'),
   window: {
     minimize: () => ipcRenderer.send('window:minimize'),
     maximize: () => ipcRenderer.send('window:maximize'),

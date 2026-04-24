@@ -1,6 +1,7 @@
 const { app, BrowserWindow, ipcMain } = require('electron')
 const { join } = require('path')
 const https = require('https')
+const fs = require('fs')
 const Store = require('electron-store')
 
 const store = new Store()
@@ -58,6 +59,57 @@ async function resolveSummoner(apiKey, name, region) {
     `https://${platform}.api.riotgames.com/lol/summoner/v4/summoners/by-name/${encodeURIComponent(name)}`,
     apiKey
   )
+}
+
+// ── LCU ──────────────────────────────────────────
+const LCU_AGENT = new https.Agent({ rejectUnauthorized: false })
+
+const LOCKFILE_PATHS = [
+  'C:\\Riot Games\\League of Legends\\lockfile',
+  'C:\\Program Files\\Riot Games\\League of Legends\\lockfile',
+  'C:\\Program Files (x86)\\Riot Games\\League of Legends\\lockfile'
+]
+
+function readLockfile() {
+  const custom = store.get('leaguePath', '')
+  const paths = custom ? [custom, ...LOCKFILE_PATHS] : LOCKFILE_PATHS
+  for (const p of paths) {
+    try {
+      if (fs.existsSync(p)) {
+        const [, , port, password] = fs.readFileSync(p, 'utf8').split(':')
+        return { port: parseInt(port), password }
+      }
+    } catch {}
+  }
+  return null
+}
+
+function lcuGet(urlPath, lf) {
+  return new Promise((resolve, reject) => {
+    const auth = Buffer.from(`riot:${lf.password}`).toString('base64')
+    https.get({
+      hostname: '127.0.0.1', port: lf.port, path: urlPath,
+      headers: { Authorization: `Basic ${auth}` },
+      agent: LCU_AGENT
+    }, (res) => {
+      let data = ''
+      res.on('data', c => data += c)
+      res.on('end', () => { try { resolve(JSON.parse(data)) } catch { resolve(null) } })
+    }).on('error', reject)
+  })
+}
+
+function liveGet(urlPath) {
+  return new Promise((resolve) => {
+    https.get({
+      hostname: '127.0.0.1', port: 2999, path: urlPath,
+      agent: LCU_AGENT
+    }, (res) => {
+      let data = ''
+      res.on('data', c => data += c)
+      res.on('end', () => { try { resolve(JSON.parse(data)) } catch { resolve(null) } })
+    }).on('error', () => resolve(null))
+  })
 }
 
 function createWindow() {
@@ -161,6 +213,34 @@ app.whenReady().then(() => {
     const champData = await jsonGet(`https://ddragon.leagueoflegends.com/cdn/${version}/data/en_US/champion.json`)
     return { version, champions: champData.data }
   })
+
+  // ── LCU handlers ─────────────────────────────
+  ipcMain.handle('lcu:status', async () => {
+    const lf = readLockfile()
+    if (!lf) return { connected: false }
+    try {
+      const phase = await lcuGet('/lol/gameflow/v1/gameflow-phase', lf)
+      return { connected: true, phase: typeof phase === 'string' ? phase : 'None' }
+    } catch { return { connected: false } }
+  })
+
+  ipcMain.handle('lcu:live', async () => {
+    return liveGet('/liveclientdata/allgamedata')
+  })
+
+  ipcMain.handle('lcu:gameflow', async () => {
+    const lf = readLockfile()
+    if (!lf) return null
+    try { return await lcuGet('/lol/gameflow/v1/gameflow-phase', lf) }
+    catch { return null }
+  })
+
+  ipcMain.handle('save-league-path', (_, p) => {
+    store.set('leaguePath', p)
+    return true
+  })
+
+  ipcMain.handle('get-league-path', () => store.get('leaguePath', ''))
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow()

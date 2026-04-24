@@ -28,7 +28,7 @@ const MODE_LABEL = {
   TUTORIAL: 'Tutorial'
 }
 
-export default function Matches({ summoner, ddragon, appError }) {
+export default function Matches({ summoner, ddragon, appError, matchRefreshKey }) {
   const [matchIds, setMatchIds]   = useState([])
   const [matches, setMatches]     = useState([])
   const [loading, setLoading]     = useState(false)
@@ -63,7 +63,7 @@ export default function Matches({ summoner, ddragon, appError }) {
       })
       .catch(e => setError(e.message))
       .finally(() => setLoading(false))
-  }, [summoner?.puuid])
+  }, [summoner?.puuid, matchRefreshKey])
 
   const loadMore = async () => {
     setLMore(true)
