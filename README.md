@@ -1,22 +1,23 @@
-# LoLMoonBase
+# LoLBloodMoon
 
 A personal League of Legends desktop stat tracker and overlay built with Electron + React.
 
 ## Download
 
-Go to [Releases](https://github.com/MuunaCat/lolmoonbase/releases) and download the latest **LoLMoonBase Setup x.x.x.exe** installer.
+Go to [Releases](https://github.com/MuunaCat/lolbloodmoon/releases) and download the latest **LoLBloodMoon Setup x.x.x.exe** installer.
 
 > **Riot API key required.** Get a free personal key at [developer.riotgames.com](https://developer.riotgames.com). Development keys expire every 24 hours — regenerate as needed.
 
 ## Features
 
-- **Profile** — summoner level, profile icon, ranked stats (Solo/Duo + Flex), recent highlights, free champion rotation
-- **Champions** — full mastery list with points, mastery level, chest status, and a per-champion modal showing challenge contributions
+- **Profile** — summoner level, profile icon, ranked stats (Solo/Duo + Flex), recent highlights, free champion rotation, OP.GG link
+- **Champions** — full mastery list with points, mastery level, chest status, and a per-champion modal showing challenge contributions. Fuzzy search across all 170+ champions
 - **Challenges** — full challenge list with tier progress, category breakdown, and overall player level. Pin any challenge to the in-game overlay with ★
-- **Trackers** — built-in S Rank Every Champion and Mastery 5 Every Champion trackers with champion grid, filters, and search. Click any card in the S Rank tracker to manually override its status
+- **Trackers** — built-in S Rank Every Champion and Mastery 5 Every Champion trackers with champion grid, filters, search, and bulk Mark All / Clear Overrides buttons
 - **Match History** — recent games with KDA, CS, items, multi-kill badges, and expandable team scoreboard. Progressive loading with ARAM Mayhem notice
 - **Live Game** — real-time in-game stats (KDA, gold, CS, vision, HP/mana bars, AD/AP/Armor/MR/MS/AS/Haste/Crit), champion select countdown, queue search status, and team scoreboard with items
 - **In-Game Overlay** — always-on-top draggable button that appears when a game starts. Expands to show your pinned challenges with progress bars. Pulses red when you die. Adjustable opacity. Closes automatically when the game ends
+- **Themes** — Default (dark gold) and Blood Moon (crimson & ember) color themes, switchable in Settings
 
 ## Setup (dev)
 
@@ -31,7 +32,7 @@ Open **Settings**, paste your Riot API key, enter your Riot ID (`Name#TAG`), and
 
 ```bash
 npm run build
-# Installer is written to dist/LoLMoonBase Setup x.x.x.exe
+# Installer is written to dist/LoLBloodMoon Setup x.x.x.exe
 ```
 
 ## Tech Stack
