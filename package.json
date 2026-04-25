@@ -22,13 +22,14 @@
     ],
     "win": {
       "target": "nsis",
-      "requestedExecutionLevel": "asInvoker"
+      "requestedExecutionLevel": "asInvoker",
+      "icon": "build/icon.ico"
     },
     "nsis": {
       "oneClick": true,
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
-      "shortcutName": "LoLMoonBase"
+      "shortcutName": "LoLBloodMoon"
     },
     "publish": {
       "provider": "github",
