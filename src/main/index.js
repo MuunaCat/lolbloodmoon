@@ -9,6 +9,7 @@ const store = new Store()
 const matchCache = new Map()
 let overlayWin = null
 let gameWatchTimer = null
+let autoGameDetector = null
 
 function isLeagueGameRunning() {
   return new Promise(resolve => {
@@ -18,29 +19,68 @@ function isLeagueGameRunning() {
   })
 }
 
+function createOverlayWindow() {
+  if (overlayWin && !overlayWin.isDestroyed()) return
+  const saved = store.get('overlayBounds', {})
+  const op    = store.get('overlayOpacity', 0.93)
+  overlayWin  = new BrowserWindow({
+    width: 240, height: 130,
+    x: saved.x, y: saved.y,
+    alwaysOnTop: true, transparent: true, frame: false,
+    skipTaskbar: true, resizable: false,
+    icon: join(__dirname, '../../build/icon.ico'),
+    webPreferences: { preload: join(__dirname, '../preload/index.js'), contextIsolation: true, nodeIntegration: false }
+  })
+  overlayWin.setOpacity(op)
+  overlayWin.setAlwaysOnTop(true, 'screen-saver')
+  if (process.env.NODE_ENV === 'development') {
+    overlayWin.loadURL(`${process.env.ELECTRON_RENDERER_URL}?overlay=true`)
+  } else {
+    overlayWin.loadFile(join(__dirname, '../renderer/index.html'), { query: { overlay: 'true' } })
+  }
+  overlayWin.on('moved', () => {
+    if (!overlayWin?.isDestroyed()) {
+      const [x, y] = overlayWin.getPosition()
+      store.set('overlayBounds', { x, y })
+    }
+  })
+  overlayWin.on('closed', () => { overlayWin = null; stopGameWatch() })
+  startGameWatch()
+}
+
+function destroyOverlayWindow() {
+  stopGameWatch()
+  if (overlayWin && !overlayWin.isDestroyed()) { overlayWin.destroy(); overlayWin = null }
+}
+
 function startGameWatch() {
   if (gameWatchTimer) return
   gameWatchTimer = setInterval(async () => {
-    if (!overlayWin || overlayWin.isDestroyed()) {
-      clearInterval(gameWatchTimer)
-      gameWatchTimer = null
-      return
-    }
+    if (!overlayWin || overlayWin.isDestroyed()) { stopGameWatch(); return }
     const running = await isLeagueGameRunning()
     if (running) {
       overlayWin.setAlwaysOnTop(true, 'screen-saver')
       overlayWin.moveTop()
     } else {
-      overlayWin.destroy()
-      overlayWin = null
-      clearInterval(gameWatchTimer)
-      gameWatchTimer = null
+      destroyOverlayWindow()
     }
   }, 2000)
 }
 
 function stopGameWatch() {
   if (gameWatchTimer) { clearInterval(gameWatchTimer); gameWatchTimer = null }
+}
+
+function startAutoGameDetector() {
+  if (autoGameDetector) return
+  autoGameDetector = setInterval(async () => {
+    const running = await isLeagueGameRunning()
+    if (running && (!overlayWin || overlayWin.isDestroyed())) {
+      createOverlayWindow()
+    } else if (!running && overlayWin && !overlayWin.isDestroyed()) {
+      destroyOverlayWindow()
+    }
+  }, 3000)
 }
 
 const PLATFORM = {
@@ -181,6 +221,7 @@ function createWindow() {
 
 app.whenReady().then(() => {
   const win = createWindow()
+  startAutoGameDetector()
 
   ipcMain.on('window:minimize', () => win.minimize())
   ipcMain.on('window:maximize', () => win.isMaximized() ? win.unmaximize() : win.maximize())
@@ -376,43 +417,8 @@ app.whenReady().then(() => {
   ipcMain.handle('shell:open-external', (_, url) => shell.openExternal(url))
 
   // ── Overlay window ────────────────────────────
-  ipcMain.handle('overlay:show', () => {
-    if (overlayWin && !overlayWin.isDestroyed()) return true
-    const saved  = store.get('overlayBounds', {})
-    const op     = store.get('overlayOpacity', 0.93)
-    overlayWin = new BrowserWindow({
-      width: 64, height: 64,
-      x: saved.x, y: saved.y,
-      alwaysOnTop: true, transparent: true, frame: false,
-      skipTaskbar: true, resizable: false,
-      webPreferences: {
-        preload: join(__dirname, '../preload/index.js'),
-        contextIsolation: true, nodeIntegration: false
-      }
-    })
-    overlayWin.setOpacity(op)
-    overlayWin.setAlwaysOnTop(true, 'screen-saver')
-    if (process.env.NODE_ENV === 'development') {
-      overlayWin.loadURL(`${process.env.ELECTRON_RENDERER_URL}?overlay=true`)
-    } else {
-      overlayWin.loadFile(join(__dirname, '../renderer/index.html'), { query: { overlay: 'true' } })
-    }
-    overlayWin.on('moved', () => {
-      if (!overlayWin?.isDestroyed()) {
-        const [x, y] = overlayWin.getPosition()
-        store.set('overlayBounds', { x, y })
-      }
-    })
-    overlayWin.on('closed', () => { overlayWin = null; stopGameWatch() })
-    startGameWatch()
-    return true
-  })
-
-  ipcMain.handle('overlay:hide', () => {
-    stopGameWatch()
-    if (overlayWin && !overlayWin.isDestroyed()) { overlayWin.destroy(); overlayWin = null }
-    return true
-  })
+  ipcMain.handle('overlay:show', () => { createOverlayWindow(); return true })
+  ipcMain.handle('overlay:hide', () => { destroyOverlayWindow(); return true })
 
   ipcMain.handle('overlay:resize', (_, w, h) => {
     if (overlayWin && !overlayWin.isDestroyed()) overlayWin.setSize(w, h)

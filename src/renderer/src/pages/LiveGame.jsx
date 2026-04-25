@@ -268,7 +268,6 @@ function InGameView({ data, summoner, ddragon }) {
           )}
         </div>
       )}
-      {data.events && <EventFeed events={data.events} />}
       <div className="live-teams">
         <TeamTable title="Blue Team" players={blueTeam} color="#5CB8E4" ddragon={ddragon} activePlayer={activePlayer} />
         <TeamTable title="Red Team"  players={redTeam}  color="#E44D4D" ddragon={ddragon} activePlayer={activePlayer} />
@@ -286,41 +285,6 @@ function ItemIcon({ itemId, version }) {
       className="live-item-icon"
       onError={e => { e.target.style.display = 'none' }}
     />
-  )
-}
-
-function EventFeed({ events }) {
-  if (!events?.Events?.length) return null
-  const relevant = events.Events
-    .filter(e => ['ChampionKill', 'DragonKill', 'BaronKill', 'TurretKilled', 'InhibitorKilled', 'HeraldKill', 'Ace', 'FirstBlood'].includes(e.EventName))
-    .slice(-8)
-    .reverse()
-
-  if (!relevant.length) return null
-
-  const icon = { ChampionKill: '⚔', DragonKill: '🐉', BaronKill: '♜', TurretKilled: '🗼', InhibitorKilled: '◈', HeraldKill: '👁', Ace: '★', FirstBlood: '🩸' }
-  const label = {
-    ChampionKill: (e) => `${e.KillerName} killed ${e.VictimName}`,
-    DragonKill: (e) => `${e.KillerName} slew ${e.DragonType || ''} Dragon${e.Stolen ? ' (stolen!)' : ''}`,
-    BaronKill: (e) => `${e.KillerName} slew Baron${e.Stolen ? ' (stolen!)' : ''}`,
-    TurretKilled: (e) => `${e.KillerName || 'Unknown'} destroyed a Turret`,
-    InhibitorKilled: (e) => `${e.KillerName || 'Unknown'} destroyed an Inhibitor`,
-    HeraldKill: (e) => `${e.KillerName} slew the Rift Herald`,
-    Ace: (e) => `${e.AceingTeam} got an ACE!`,
-    FirstBlood: (e) => `${e.Recipient} got First Blood!`,
-  }
-
-  return (
-    <div className="live-event-feed">
-      <div className="live-team-title" style={{ color: 'var(--text-mid)', marginBottom: 10 }}>Events</div>
-      {relevant.map((e, i) => (
-        <div key={e.EventID ?? i} className="live-event-row">
-          <span className="live-event-icon">{icon[e.EventName] || '◉'}</span>
-          <span className="live-event-text">{label[e.EventName]?.(e) ?? e.EventName}</span>
-          <span className="live-event-time">{formatTime(e.EventTime)}</span>
-        </div>
-      ))}
-    </div>
   )
 }
 
