@@ -7,12 +7,17 @@ const TIER_COLOR = {
   CHALLENGER: '#F0E6D3'
 }
 
-export default function Profile({ summoner, ddragon, appError, onRefresh }) {
-  const [ranked, setRanked]         = useState(null)
-  const [loading, setLoading]       = useState(false)
-  const [error, setError]           = useState(null)
-  const [rotation, setRotation]     = useState(null)
-  const [recentMatches, setRecent]  = useState(null)
+const OPGG_REGION = {
+  NA: 'na', EUW: 'euw', EUNE: 'eune', KR: 'kr',
+  BR: 'br', JP: 'jp', LAN: 'lan', LAS: 'las', OCE: 'oce', RU: 'ru', TR: 'tr'
+}
+
+export default function Profile({ summoner, ddragon, appError, onRefresh, onChampionNavigate, region }) {
+  const [ranked, setRanked]        = useState(null)
+  const [loading, setLoading]      = useState(false)
+  const [error, setError]          = useState(null)
+  const [rotation, setRotation]    = useState(null)
+  const [recentMatches, setRecent] = useState(null)
 
   useEffect(() => {
     if (!summoner) return
@@ -23,12 +28,10 @@ export default function Profile({ summoner, ddragon, appError, onRefresh }) {
       .finally(() => setLoading(false))
   }, [summoner?.id])
 
-  // Free rotation
   useEffect(() => {
     window.api.getChampionRotation().then(setRotation).catch(() => {})
   }, [])
 
-  // Recent 5 matches for streak + highlights
   useEffect(() => {
     if (!summoner?.puuid) return
     window.api.getMatchIds(summoner.puuid)
@@ -40,12 +43,9 @@ export default function Profile({ summoner, ddragon, appError, onRefresh }) {
       .catch(() => {})
   }, [summoner?.puuid])
 
-  // Compute streak + highlights from recent matches
   const { streak, highlights } = useMemo(() => {
     if (!recentMatches || !summoner?.puuid) return { streak: null, highlights: [] }
-
-    let streak = 0
-    let lastWin = null
+    let streak = 0, lastWin = null
     for (const m of recentMatches.slice(0, 5)) {
       const me = m.info.participants.find(p => p.puuid === summoner.puuid)
       if (!me) continue
@@ -53,17 +53,15 @@ export default function Profile({ summoner, ddragon, appError, onRefresh }) {
       if (me.win === lastWin) streak++
       else break
     }
-
     const hl = []
     for (const m of recentMatches) {
       const me = m.info.participants.find(p => p.puuid === summoner.puuid)
       if (!me) continue
-      if (me.pentaKills  > 0) hl.push({ type: 'PENTA KILL',  champ: me.championName, cls: 'penta' })
-      else if (me.quadraKills > 0) hl.push({ type: 'QUADRA KILL', champ: me.championName, cls: 'quadra' })
-      else if (me.tripleKills > 0) hl.push({ type: 'TRIPLE KILL', champ: me.championName, cls: 'triple' })
+      if (me.pentaKills  > 0) hl.push({ type: 'Penta Kill',  champ: me.championName, cls: 'penta' })
+      else if (me.quadraKills > 0) hl.push({ type: 'Quadra Kill', champ: me.championName, cls: 'quadra' })
+      else if (me.tripleKills > 0) hl.push({ type: 'Triple Kill', champ: me.championName, cls: 'triple' })
       if (hl.length >= 5) break
     }
-
     return { streak: { count: streak, win: lastWin }, highlights: hl }
   }, [recentMatches, summoner?.puuid])
 
@@ -97,6 +95,11 @@ export default function Profile({ summoner, ddragon, appError, onRefresh }) {
   const soloQ = ranked?.find(r => r.queueType === 'RANKED_SOLO_5x5')
   const flexQ  = ranked?.find(r => r.queueType === 'RANKED_FLEX_SR')
 
+  const opggRegion = OPGG_REGION[region] || 'euw'
+  const opggUrl = summoner.gameName
+    ? `https://www.op.gg/summoners/${opggRegion}/${encodeURIComponent(summoner.gameName)}-${encodeURIComponent(summoner.tagLine)}`
+    : `https://www.op.gg/summoners/${opggRegion}/${encodeURIComponent(summoner.name || '')}`
+
   return (
     <div className="page">
       <h1 className="page-title">Profile</h1>
@@ -104,24 +107,30 @@ export default function Profile({ summoner, ddragon, appError, onRefresh }) {
       <div className="profile-hero card card-gold">
         <div className="profile-icon-wrap">
           {iconUrl
-            ? <img src={iconUrl} alt="icon" className="profile-icon" />
+            ? <img src={iconUrl} alt="icon" className="profile-icon" draggable={false} />
             : <div style={{ width: 88, height: 88, borderRadius: 10, background: 'var(--bg-hover)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 32, color: 'var(--text-dim)' }}>◈</div>
           }
           <span className="profile-level-badge">{summoner.summonerLevel}</span>
         </div>
         <div style={{ flex: 1 }}>
-          <div className="profile-name">{displayName}</div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
+            <div className="profile-name">{displayName}</div>
+            <button
+              className="opgg-link"
+              onClick={() => window.api.openExternal(opggUrl)}
+              title="View on OP.GG"
+            >OP.GG</button>
+          </div>
           <div className="profile-region">Summoner · Level {summoner.summonerLevel}</div>
         </div>
         {streak && streak.count >= 2 && (
           <div className="profile-streak" style={{ color: streak.win ? 'var(--win)' : 'var(--loss)' }}>
             <div className="profile-streak-count">{streak.count}</div>
-            <div className="profile-streak-label">{streak.win ? 'WIN' : 'LOSS'} STREAK</div>
+            <div className="profile-streak-label">{streak.win ? 'Win' : 'Loss'} Streak</div>
           </div>
         )}
       </div>
 
-      {/* Multi-kill highlights */}
       {highlights.length > 0 && (
         <>
           <div className="section-label">Recent Highlights</div>
@@ -145,7 +154,6 @@ export default function Profile({ summoner, ddragon, appError, onRefresh }) {
         </div>
       )}
 
-      {/* Free champion rotation */}
       {rotationChamps.length > 0 && (
         <>
           <div className="section-label">Free This Week ({rotationChamps.length} champions)</div>
@@ -153,8 +161,15 @@ export default function Profile({ summoner, ddragon, appError, onRefresh }) {
             {rotationChamps.map(c => {
               const img = `https://ddragon.leagueoflegends.com/cdn/${ddragon.version}/img/champion/${c.image.full}`
               return (
-                <div key={c.key} className="profile-rotation-card" title={c.name}>
-                  <img src={img} alt={c.name} className="profile-rotation-img" />
+                <div
+                  key={c.key}
+                  className="profile-rotation-card"
+                  title={`${c.name} — click to view in Champions`}
+                  onClick={() => onChampionNavigate?.(c.name)}
+                  style={{ cursor: 'pointer' }}
+                >
+                  <img src={img} alt={c.name} className="profile-rotation-img" draggable={false}
+                    onError={e => { e.target.style.display = 'none' }} />
                   <div className="profile-rotation-name">{c.name}</div>
                 </div>
               )
@@ -180,11 +195,13 @@ function RankCard({ queue, label }) {
   const total = wins + losses
   const wr = total ? Math.round((wins / total) * 100) : 0
 
+  const tierName = tier.charAt(0) + tier.slice(1).toLowerCase()
+
   return (
     <div className="card rank-card" style={{ '--accent-color': color, borderColor: `${color}30` }}>
       <div className="rank-queue-label">{label}</div>
       <div className={`rank-tier-text tier-${tier}`}>
-        {tier}<span className="rank-division"> {rank}</span>
+        {tierName}<span className="rank-division"> {rank}</span>
       </div>
       <div className="rank-lp">{lp} LP</div>
       <div className="rank-row">

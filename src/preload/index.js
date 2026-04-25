@@ -36,6 +36,9 @@ contextBridge.exposeInMainWorld('api', {
   showOverlay: () => ipcRenderer.invoke('overlay:show'),
   hideOverlay: () => ipcRenderer.invoke('overlay:hide'),
   resizeOverlay: (w, h) => ipcRenderer.invoke('overlay:resize', w, h),
+  openExternal: (url) => ipcRenderer.invoke('shell:open-external', url),
+  getTheme: () => ipcRenderer.invoke('store:get-theme'),
+  saveTheme: (t) => ipcRenderer.invoke('store:save-theme', t),
   window: {
     minimize: () => ipcRenderer.send('window:minimize'),
     maximize: () => ipcRenderer.send('window:maximize'),

@@ -20,6 +20,11 @@ function kdaRatio(k, d, a) {
   return ((k + a) / d).toFixed(2)
 }
 
+const POSITION_LABEL = {
+  TOP: 'Top', JUNGLE: 'Jungle', MIDDLE: 'Mid',
+  BOTTOM: 'Bot', UTILITY: 'Support', NONE: ''
+}
+
 const MODE_LABEL = {
   CLASSIC: 'Summoner\'s Rift', ARAM: 'ARAM', URF: 'URF',
   CHERRY: 'Arena', TUTORIAL: 'Tutorial',
@@ -73,7 +78,9 @@ function MatchDetail({ match, summoner, ddragon }) {
           <span className="match-detail-stat"><span style={{ color: 'var(--gold)' }}>{(me.goldEarned || 0).toLocaleString()}</span> gold</span>
           <span className="match-detail-stat"><span style={{ color: 'var(--text-mid)' }}>{me.visionScore ?? 0}</span> vision</span>
           <span className="match-detail-stat" title="Damage to champions"><span style={{ color: '#E44D4D' }}>{(me.totalDamageDealtToChampions || 0).toLocaleString()}</span> dmg</span>
-          <span className="match-detail-stat"><span style={{ color: 'var(--text-dim)' }}>{me.teamPosition || me.individualPosition || '—'}</span></span>
+          {(me.teamPosition || me.individualPosition) && (
+            <span className="match-detail-stat"><span style={{ color: 'var(--text-dim)' }}>{POSITION_LABEL[me.teamPosition || me.individualPosition] || (me.teamPosition || me.individualPosition)}</span></span>
+          )}
         </div>
       </div>
 
@@ -90,7 +97,7 @@ function MatchDetail({ match, summoner, ddragon }) {
               const img = champ && ver ? `https://ddragon.leagueoflegends.com/cdn/${ver}/img/champion/${champ.image.full}` : null
               return (
                 <div key={i} className={`match-detail-player${isMe ? ' me' : ''}`}>
-                  {img ? <img src={img} alt={p.championName} className="match-detail-champ-img" /> : <div className="match-detail-champ-placeholder">⚔</div>}
+                  {img ? <img src={img} alt={p.championName} className="match-detail-champ-img" draggable={false} /> : <div className="match-detail-champ-placeholder">⚔</div>}
                   <span className="match-detail-player-name" style={{ color: isMe ? 'var(--gold)' : 'var(--text)' }}>{p.riotIdGameName || p.summonerName}</span>
                   <span className="match-detail-player-kda">
                     <span className="win-text">{p.kills}</span>/<span className="loss-text">{p.deaths}</span>/<span style={{ color: 'var(--text-mid)' }}>{p.assists}</span>
@@ -289,7 +296,7 @@ export default function Matches({ summoner, ddragon, appError, matchRefreshKey, 
                     <div className={`match-outcome ${win ? 'win' : 'loss'}`}>{win ? 'WIN' : 'LOSS'}</div>
 
                     {imgUrl
-                      ? <img src={imgUrl} alt={me.championName} className="match-champ-img" />
+                      ? <img src={imgUrl} alt={me.championName} className="match-champ-img" draggable={false} />
                       : <div className="match-champ-placeholder">⚔</div>
                     }
 

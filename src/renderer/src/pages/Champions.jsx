@@ -1,16 +1,30 @@
 import { useState, useEffect, useMemo, useCallback } from 'react'
 
-const MASTERY_COLOR = ['', '#888', '#888', '#888', '#5CB8E4', '#4CAF6A', '#9B59B6', '#C84040']
-const MAX_POINTS_PER_LEVEL = [0, 1800, 6000, 12600, 21600, 36000, 52000, Infinity]
+const MASTERY_COLORS = {
+  0: '#444', 1: '#5C5C5C', 2: '#7A7A7A', 3: '#9A9A9A',
+  4: '#CD7F32', 5: '#4CAF6A', 6: '#9B59B6', 7: '#C84040',
+  8: '#C89B3C', 9: '#E4C87A', 10: '#F0E6D3'
+}
+const getMasteryColor = (lvl) => MASTERY_COLORS[Math.min(Math.max(lvl || 0, 0), 10)] || '#444'
 
-// Known mastery challenge IDs (confirmed via leagueofchallenges.com)
-const CHALLENGE_ID_M5  = 401104  // "Master Yourself" — Earn Mastery 5 on N champs
-const CHALLENGE_ID_M10 = 401107  // "Master the Enemy" — Earn Mastery 10 on N champs
+const MAX_POINTS_PER_LEVEL = [0, 1800, 6000, 12600, 21600, 36000, 52000, Infinity, Infinity, Infinity, Infinity]
+
+const CHALLENGE_ID_M5  = 401104
+const CHALLENGE_ID_M10 = 401107
 
 const TIER_ORDER = ['IRON', 'BRONZE', 'SILVER', 'GOLD', 'PLATINUM', 'DIAMOND', 'MASTER', 'GRANDMASTER', 'CHALLENGER']
 
+const TIER_COLOR = {
+  IRON: '#7D6E5E', BRONZE: '#A0522D', SILVER: '#9EA9B0', GOLD: '#C89B3C',
+  PLATINUM: '#4CAF6A', EMERALD: '#1FA657', DIAMOND: '#5CB8E4',
+  MASTER: '#9B59B6', GRANDMASTER: '#E55B4D', CHALLENGER: '#F0E6D3'
+}
+
 function formatPoints(n) {
-  return n >= 1000 ? `${(n / 1000).toFixed(1)}k` : String(n)
+  if (!n) return '0'
+  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`
+  if (n >= 1_000) return `${(n / 1_000).toFixed(1)}k`
+  return String(n)
 }
 
 function formatDate(ms) {
@@ -23,6 +37,10 @@ function kdaRatio(k, d, a) {
   return ((k + a) / d).toFixed(2)
 }
 
+function normalizeSearch(s) {
+  return s.toLowerCase().replace(/[^a-z0-9]/g, '')
+}
+
 function getNextThreshold(thresholds, currentValue) {
   if (!thresholds) return null
   for (const tier of TIER_ORDER) {
@@ -30,12 +48,6 @@ function getNextThreshold(thresholds, currentValue) {
     if (t != null && currentValue < t) return { tier, value: t }
   }
   return null
-}
-
-const TIER_COLOR = {
-  IRON: '#7D6E5E', BRONZE: '#A0522D', SILVER: '#9EA9B0', GOLD: '#C89B3C',
-  PLATINUM: '#4CAF6A', EMERALD: '#1FA657', DIAMOND: '#5CB8E4',
-  MASTER: '#9B59B6', GRANDMASTER: '#E55B4D', CHALLENGER: '#F0E6D3'
 }
 
 function ChallengeProgressRow({ label, subLabel, playerValue, thresholds, currentLevel, contributes, contributesNote }) {
@@ -76,7 +88,7 @@ function ChallengeProgressRow({ label, subLabel, playerValue, thresholds, curren
 }
 
 function MasteryBar({ pts, lvl, color }) {
-  const maxPts = MAX_POINTS_PER_LEVEL[Math.min(lvl, 7)]
+  const maxPts = MAX_POINTS_PER_LEVEL[Math.min(lvl || 0, 10)]
   const pct = maxPts === Infinity ? 100 : Math.min(100, Math.round((pts / maxPts) * 100))
   return (
     <div className="champ-pts-bar-track" style={{ height: 4 }}>
@@ -89,10 +101,10 @@ function ChampionModal({ masteryEntry, champ, ddragon, summoner, rank, onClose, 
   const [matchStats, setMatchStats] = useState(null)
   const [loadingStats, setLoadingStats] = useState(false)
 
-  const lvl     = masteryEntry.championLevel
-  const pts     = masteryEntry.championPoints
-  const color   = MASTERY_COLOR[Math.min(lvl, 7)] || '#888'
-  const maxPts  = MAX_POINTS_PER_LEVEL[Math.min(lvl, 7)]
+  const lvl     = masteryEntry.championLevel || 0
+  const pts     = masteryEntry.championPoints || 0
+  const color   = getMasteryColor(lvl)
+  const maxPts  = MAX_POINTS_PER_LEVEL[Math.min(lvl, 10)]
   const pct     = maxPts === Infinity ? 100 : Math.min(100, Math.round((pts / maxPts) * 100))
   const ptsToNext = maxPts === Infinity ? null : maxPts - pts
 
@@ -100,27 +112,24 @@ function ChampionModal({ masteryEntry, champ, ddragon, summoner, rank, onClose, 
     ? `https://ddragon.leagueoflegends.com/cdn/${ddragon.version}/img/champion/${champ.image.full}`
     : null
 
-  // Build relevant challenges for this champion
   const relevantChallenges = useMemo(() => {
     const list = []
 
-    // Level 5 Mastery Challenge (401104)
     const m5 = challengeMap[CHALLENGE_ID_M5]
     const m5cfg = configMap[CHALLENGE_ID_M5]
     if (m5cfg) {
       list.push({
         id: CHALLENGE_ID_M5,
-        label: 'Level 5 Mastery Challenge',
-        subLabel: 'Earn Mastery 5 on different champions',
+        label: 'Master Yourself',
+        subLabel: 'Earn Mastery Level 5 on different champions',
         playerValue: m5?.value ?? 0,
         currentLevel: m5?.level,
         thresholds: m5cfg.thresholds,
         contributes: lvl >= 5,
-        contributesNote: lvl >= 5 ? 'This champion counts' : `Reach M5 to count (currently M${lvl})`,
+        contributesNote: lvl >= 5 ? 'This champion counts' : `Reach Mastery 5 to count (currently M${lvl})`,
       })
     }
 
-    // Class-based challenge: "Master <Tag>" (e.g. Master Fighter)
     for (const tag of (champ?.tags || [])) {
       const className = `Master ${tag}`
       const classCfg = Object.values(configMap).find(cfg => {
@@ -132,29 +141,28 @@ function ChampionModal({ masteryEntry, champ, ddragon, summoner, rank, onClose, 
         list.push({
           id: classCfg.id,
           label: className,
-          subLabel: classCfg.localizedNames?.en_US?.shortDescription || `Earn high Mastery on ${tag}s`,
+          subLabel: `Earn Mastery 7 on different ${tag} champions`,
           playerValue: classChallenge?.value ?? 0,
           currentLevel: classChallenge?.level,
           thresholds: classCfg.thresholds,
           contributes: lvl >= 7,
-          contributesNote: lvl >= 7 ? 'This champion counts (M7+)' : `Reach M7 to count (currently M${lvl})`,
+          contributesNote: lvl >= 7 ? 'This champion counts (Mastery 7+)' : `Reach Mastery 7 to count (currently M${lvl})`,
         })
       }
     }
 
-    // Master the Enemy (401107) — M10 challenge
     const m10 = challengeMap[CHALLENGE_ID_M10]
     const m10cfg = configMap[CHALLENGE_ID_M10]
     if (m10cfg) {
       list.push({
         id: CHALLENGE_ID_M10,
         label: 'Master the Enemy',
-        subLabel: 'Earn Mastery 10 on different champions',
+        subLabel: 'Earn Mastery Level 10 on different champions',
         playerValue: m10?.value ?? 0,
         currentLevel: m10?.level,
         thresholds: m10cfg.thresholds,
         contributes: lvl >= 10,
-        contributesNote: lvl >= 10 ? 'This champion counts (M10)' : `Reach M10 to count (currently M${lvl})`,
+        contributesNote: lvl >= 10 ? 'This champion counts (Mastery 10)' : `Reach Mastery 10 to count (currently M${lvl})`,
       })
     }
 
@@ -203,14 +211,15 @@ function ChampionModal({ masteryEntry, champ, ddragon, summoner, rank, onClose, 
     return () => window.removeEventListener('keydown', handler)
   }, [onClose])
 
+  const masteryLabel = lvl === 0 ? 'Not played' : `Mastery ${lvl}`
+
   return (
     <div className="champ-modal-backdrop" onClick={handleBackdrop}>
       <div className="champ-modal">
         <button className="champ-modal-close" onClick={onClose}>✕</button>
 
-        {/* Header */}
         <div className="champ-modal-header">
-          {imgUrl && <img src={imgUrl} alt={champ?.name} className="champ-modal-img" />}
+          {imgUrl && <img src={imgUrl} alt={champ?.name} className="champ-modal-img" draggable={false} />}
           <div className="champ-modal-title-block">
             <div className="champ-modal-name">{champ?.name ?? `Champion ${masteryEntry.championId}`}</div>
             {champ?.title && <div className="champ-modal-subtitle">{champ.title}</div>}
@@ -219,26 +228,26 @@ function ChampionModal({ masteryEntry, champ, ddragon, summoner, rank, onClose, 
                 {champ.tags.map(t => <span key={t} className="champ-tag">{t}</span>)}
               </div>
             )}
-            {rank != null && <div className="champ-modal-rank">#{rank + 1} most played</div>}
+            {rank != null && rank >= 0 && <div className="champ-modal-rank">#{rank + 1} most played</div>}
           </div>
         </div>
 
-        {/* Mastery */}
         <div className="champ-modal-section-title">Mastery</div>
         <div className="champ-modal-mastery-row">
           <div className="champ-modal-mastery-badge" style={{ color, borderColor: `${color}44` }}>
-            M{lvl}
+            {lvl > 0 ? `M${lvl}` : '—'}
           </div>
           <div style={{ flex: 1 }}>
             <div className="champ-modal-pts-line">
-              <span style={{ color }}>{formatPoints(pts)} pts</span>
-              {ptsToNext != null && (
+              <span style={{ color, fontWeight: 700 }}>{masteryLabel}</span>
+              <span style={{ color: 'var(--text-mid)', fontSize: 13 }}>{formatPoints(pts)} pts</span>
+              {ptsToNext != null && lvl > 0 && (
                 <span className="champ-modal-pts-next">{formatPoints(ptsToNext)} to M{lvl + 1}</span>
               )}
             </div>
-            <MasteryBar pts={pts} lvl={lvl} color={color} />
+            {lvl > 0 && <MasteryBar pts={pts} lvl={lvl} color={color} />}
             <div className="champ-modal-meta">
-              <span>Last played: {formatDate(masteryEntry.lastPlayTime)}</span>
+              {masteryEntry.lastPlayTime > 0 && <span>Last played: {formatDate(masteryEntry.lastPlayTime)}</span>}
               {masteryEntry.chestGranted && <span className="champ-chest-granted">✓ Chest earned</span>}
               {lvl >= 5 && masteryEntry.tokensEarned > 0 && (
                 <span style={{ color: 'var(--gold)' }}>
@@ -249,7 +258,6 @@ function ChampionModal({ masteryEntry, champ, ddragon, summoner, rank, onClose, 
           </div>
         </div>
 
-        {/* Challenges */}
         {relevantChallenges.length > 0 && (
           <>
             <div className="champ-modal-section-title">Related Challenges</div>
@@ -261,11 +269,10 @@ function ChampionModal({ masteryEntry, champ, ddragon, summoner, rank, onClose, 
           </>
         )}
 
-        {/* Recent stats */}
         <div className="champ-modal-section-title" style={{ marginTop: 20 }}>
           Recent Performance
           {matchStats?.sample > 0 && (
-            <span className="champ-modal-section-sub">last {matchStats.sample} games of {matchStats.played} played</span>
+            <span className="champ-modal-section-sub"> — last {matchStats.sample} of {matchStats.played} games</span>
           )}
         </div>
         {loadingStats && (
@@ -274,7 +281,7 @@ function ChampionModal({ masteryEntry, champ, ddragon, summoner, rank, onClose, 
           </div>
         )}
         {!loadingStats && matchStats && matchStats.played === 0 && (
-          <div style={{ color: 'var(--text-dim)', fontSize: 13 }}>No recent games found with this champion.</div>
+          <div style={{ color: 'var(--text-dim)', fontSize: 13 }}>No recorded games with this champion.</div>
         )}
         {!loadingStats && matchStats && matchStats.played > 0 && (
           <div className="champ-modal-stats-grid">
@@ -305,25 +312,32 @@ function ChampionModal({ masteryEntry, champ, ddragon, summoner, rank, onClose, 
   )
 }
 
-export default function Champions({ summoner, ddragon, appError }) {
+export default function Champions({ summoner, ddragon, appError, initialSearch, onInitSearchConsumed }) {
   const [mastery, setMastery]           = useState(null)
   const [loading, setLoading]           = useState(false)
   const [error, setError]               = useState(null)
-  const [search, setSearch]             = useState('')
+  const [search, setSearch]             = useState(initialSearch || '')
   const [selected, setSelected]         = useState(null)
-  const [challengeMap, setChallengeMap] = useState({})  // { challengeId: playerChallenge }
-  const [configMap, setConfigMap]       = useState({})  // { challengeId: challengeConfig }
+  const [challengeMap, setChallengeMap] = useState({})
+  const [configMap, setConfigMap]       = useState({})
+
+  // Consume initial search once
+  useEffect(() => {
+    if (initialSearch) {
+      setSearch(initialSearch)
+      onInitSearchConsumed?.()
+    }
+  }, [initialSearch])
 
   useEffect(() => {
     if (!summoner) return
     setLoading(true)
-    window.api.getMastery(summoner.puuid)
+    window.api.getAllMastery(summoner.puuid)
       .then(setMastery)
       .catch(e => setError(e.message))
       .finally(() => setLoading(false))
   }, [summoner?.puuid])
 
-  // Fetch challenge data + configs once (for the modal)
   useEffect(() => {
     if (!summoner?.puuid) return
     Promise.all([
@@ -343,6 +357,13 @@ export default function Champions({ summoner, ddragon, appError }) {
     })
   }, [summoner?.puuid])
 
+  const masteryById = useMemo(() => {
+    if (!mastery) return {}
+    const map = {}
+    mastery.forEach(m => { map[m.championId] = m })
+    return map
+  }, [mastery])
+
   const championById = useMemo(() => {
     if (!ddragon) return {}
     const map = {}
@@ -350,20 +371,36 @@ export default function Champions({ summoner, ddragon, appError }) {
     return map
   }, [ddragon])
 
-  const filtered = useMemo(() => {
-    if (!mastery) return []
-    if (!search) return mastery
-    const q = search.toLowerCase()
-    return mastery.filter(m => {
-      const champ = championById[m.championId]
-      return champ?.name.toLowerCase().includes(q)
+  // All champions merged: mastery data + unplayed champions from ddragon
+  const allChampions = useMemo(() => {
+    if (!ddragon) return []
+    const allDDragon = Object.values(ddragon.champions)
+    const result = allDDragon.map(champ => {
+      const champId = parseInt(champ.key)
+      const m = masteryById[champId] || null
+      return { champ, m, pts: m?.championPoints || 0, lvl: m?.championLevel || 0, played: !!m }
     })
-  }, [mastery, search, championById])
+    // Sort: played champs by mastery points desc, then unplayed alphabetically
+    result.sort((a, b) => {
+      if (a.played !== b.played) return a.played ? -1 : 1
+      if (b.pts !== a.pts) return b.pts - a.pts
+      return a.champ.name.localeCompare(b.champ.name)
+    })
+    return result
+  }, [ddragon, masteryById])
+
+  const filtered = useMemo(() => {
+    if (!search) return allChampions
+    const q = normalizeSearch(search)
+    return allChampions.filter(({ champ }) => normalizeSearch(champ.name).includes(q))
+  }, [allChampions, search])
 
   const handleClose = useCallback(() => setSelected(null), [])
 
   if (appError) return <div className="page"><div className="error-box">⚠ {appError}</div></div>
   if (!summoner) return <div className="page"><div className="error-box">⚠ Configure your settings first.</div></div>
+
+  const playedCount = allChampions.filter(c => c.played).length
 
   return (
     <div className="page">
@@ -376,7 +413,11 @@ export default function Champions({ summoner, ddragon, appError }) {
           value={search}
           onChange={e => setSearch(e.target.value)}
         />
-        {mastery && <span style={{ fontSize: 12, color: 'var(--text-dim)' }}>Top {mastery.length} by mastery</span>}
+        {!loading && (
+          <span style={{ fontSize: 12, color: 'var(--text-dim)' }}>
+            {playedCount} played · {allChampions.length} total
+          </span>
+        )}
       </div>
 
       {loading && <div className="loading"><div className="spinner" /><span>Loading mastery...</span></div>}
@@ -388,35 +429,40 @@ export default function Champions({ summoner, ddragon, appError }) {
 
       {!loading && !error && filtered.length > 0 && (
         <div className="champ-grid">
-          {filtered.map((m, idx) => {
-            const champ = championById[m.championId]
-            const imgUrl = champ && ddragon
+          {filtered.map(({ champ, m, pts, lvl }, idx) => {
+            const champId = parseInt(champ.key)
+            const imgUrl = ddragon
               ? `https://ddragon.leagueoflegends.com/cdn/${ddragon.version}/img/champion/${champ.image.full}`
               : null
-            const lvl   = m.championLevel
-            const color = MASTERY_COLOR[Math.min(lvl, 7)] || '#888'
-            const maxPts = MAX_POINTS_PER_LEVEL[Math.min(lvl, 7)]
-            const pct   = maxPts === Infinity ? 100 : Math.min(100, Math.round((m.championPoints / maxPts) * 100))
+            const color = getMasteryColor(lvl)
+            const maxPts = MAX_POINTS_PER_LEVEL[Math.min(lvl, 10)]
+            const pct = !m ? 0 : (maxPts === Infinity ? 100 : Math.min(100, Math.round((pts / maxPts) * 100)))
 
             return (
               <div
                 className="champ-card"
-                key={m.championId}
-                onClick={() => setSelected({ entry: m, champ, rank: idx })}
-                style={{ cursor: 'pointer' }}
+                key={champId}
+                onClick={() => setSelected({
+                  entry: m || { championId: champId, championLevel: 0, championPoints: 0 },
+                  champ,
+                  rank: m ? allChampions.findIndex(c => c.champ.key === champ.key) : -1
+                })}
+                style={{ cursor: 'pointer', opacity: m ? 1 : 0.55 }}
               >
                 <div className="champ-img-wrap">
                   {imgUrl
-                    ? <img src={imgUrl} alt={champ?.name} className="champ-img" />
-                    : <div className="champ-img-placeholder">⚔</div>
+                    ? <img src={imgUrl} alt={champ.name} className="champ-img" draggable={false}
+                        onError={e => { e.target.style.display='none'; e.target.nextSibling?.style && (e.target.nextSibling.style.display='flex') }} />
+                    : null
                   }
+                  <div className="champ-img-placeholder" style={{ display: imgUrl ? 'none' : 'flex' }}>⚔</div>
                   <span className="mastery-level-badge" style={{ color, border: `1px solid ${color}55` }}>
-                    M{lvl}
+                    {lvl > 0 ? `M${lvl}` : '—'}
                   </span>
                 </div>
                 <div className="champ-body">
-                  <div className="champ-name">{champ?.name ?? `Champion ${m.championId}`}</div>
-                  <div className="champ-points">{formatPoints(m.championPoints)} pts</div>
+                  <div className="champ-name">{champ.name}</div>
+                  <div className="champ-points">{m ? `${formatPoints(pts)} pts` : 'Not played'}</div>
                   <div className="champ-pts-bar-track">
                     <div className="champ-pts-bar-fill" style={{ width: `${pct}%`, background: color }} />
                   </div>

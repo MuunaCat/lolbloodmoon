@@ -2,7 +2,12 @@ import { useState, useEffect } from 'react'
 
 const REGIONS = ['NA', 'EUW', 'EUNE', 'KR', 'BR', 'JP', 'LAN', 'LAS', 'OCE', 'RU', 'TR']
 
-export default function Settings({ onRefresh, onSettingsSaved }) {
+const THEMES = [
+  { id: 'default',   label: 'Default',     desc: 'Classic dark gold' },
+  { id: 'bloodmoon', label: 'Blood Moon',  desc: 'Deep crimson & ember' }
+]
+
+export default function Settings({ onRefresh, onSettingsSaved, theme, onThemeChange }) {
   const [apiKey, setApiKey]           = useState('')
   const [summonerName, setSummoner]   = useState('')
   const [region, setRegion]           = useState('EUW')
@@ -62,7 +67,11 @@ export default function Settings({ onRefresh, onSettingsSaved }) {
             </button>
           </div>
           <span className="form-hint">
-            Get your Personal API key at <strong style={{ color: 'var(--gold)' }}>developer.riotgames.com</strong>.
+            Get your Personal API key at{' '}
+            <strong
+              className="settings-link"
+              onClick={() => window.api.openExternal('https://developer.riotgames.com')}
+            >developer.riotgames.com</strong>.
             Personal keys don't expire and are for private use only.
           </span>
         </div>
@@ -121,13 +130,35 @@ export default function Settings({ onRefresh, onSettingsSaved }) {
 
         <div className="divider" />
 
+        <div className="form-group">
+          <label className="form-label">Theme</label>
+          <div style={{ display: 'flex', gap: 10 }}>
+            {THEMES.map(t => (
+              <button
+                key={t.id}
+                className={`theme-btn${theme === t.id ? ' active' : ''}`}
+                onClick={() => onThemeChange?.(t.id)}
+              >
+                <span className="theme-btn-name">{t.label}</span>
+                <span className="theme-btn-desc">{t.desc}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="divider" />
+
         <div style={{ padding: '4px 0' }}>
           <div className="form-label" style={{ marginBottom: 10 }}>About</div>
           <div className="form-hint" style={{ lineHeight: 1.8 }}>
-            LoLMoonBase is a personal desktop app for viewing your summoner profile,
+            LoLBloodMoon is a personal desktop app for viewing your summoner profile,
             champion mastery, challenge progress, and match history.<br />
             Your API key is stored <strong style={{ color: 'var(--text)' }}>locally only</strong> — never sent to any third-party server.
-            All requests go directly to <strong style={{ color: 'var(--gold)' }}>api.riotgames.com</strong>.
+            All requests go directly to{' '}
+            <strong
+              className="settings-link"
+              onClick={() => window.api.openExternal('https://api.riotgames.com')}
+            >api.riotgames.com</strong>.
           </div>
         </div>
       </div>

@@ -113,6 +113,22 @@ export default function Challenges({ summoner, ddragon, appError }) {
     window.api.saveSrankOverrides(newOverrides)
   }
 
+  const markAllSrank = (champs) => {
+    const newOverrides = { ...srankOverrides }
+    champs.forEach(c => {
+      const apiDone = TRACKER_DEFS.find(t => t.id === 'srank').check(c.masteryData)
+      if (!apiDone) newOverrides[c.key] = true
+      else delete newOverrides[c.key]
+    })
+    setSrankOverrides(newOverrides)
+    window.api.saveSrankOverrides(newOverrides)
+  }
+
+  const clearSrankOverrides = () => {
+    setSrankOverrides({})
+    window.api.saveSrankOverrides({})
+  }
+
   const trackerStats = useMemo(() => {
     return TRACKER_DEFS.map(t => {
       const withStatus = allChampions.map(c => {
@@ -121,7 +137,8 @@ export default function Challenges({ summoner, ddragon, appError }) {
         const done = t.id === 'srank' && srankOverrides[c.key] !== undefined
           ? srankOverrides[c.key]
           : apiDone
-        return { ...c, masteryData, done, isManual: t.id === 'srank' && srankOverrides[c.key] !== undefined }
+        const isManual = t.id === 'srank' && srankOverrides[c.key] !== undefined && srankOverrides[c.key] !== apiDone
+        return { ...c, masteryData, done, isManual }
       })
       const done  = withStatus.filter(c => c.done).length
       const total = withStatus.length
@@ -257,6 +274,22 @@ export default function Challenges({ summoner, ddragon, appError }) {
                         value={trackerSearch}
                         onChange={e => setTrackerSearch(e.target.value)}
                       />
+                      {t.id === 'srank' && (
+                        <div style={{ display: 'flex', gap: 6 }}>
+                          <button
+                            className="filter-btn"
+                            style={{ color: 'var(--win)', borderColor: 'rgba(61,214,140,0.25)' }}
+                            onClick={() => markAllSrank(filteredTrackerChamps)}
+                            title="Mark all visible champions as done"
+                          >✓ Mark All</button>
+                          <button
+                            className="filter-btn"
+                            style={{ color: 'var(--loss)', borderColor: 'rgba(200,60,60,0.25)' }}
+                            onClick={clearSrankOverrides}
+                            title="Remove all manual overrides"
+                          >✗ Clear Overrides</button>
+                        </div>
+                      )}
                     </div>
 
                     <div className="tracker-grid" style={{ marginTop: 12 }}>

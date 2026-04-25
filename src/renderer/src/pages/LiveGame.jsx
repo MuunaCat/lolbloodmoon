@@ -343,7 +343,7 @@ function TeamTable({ title, players, color, ddragon, activePlayer }) {
                 <div className="live-player-info">
                   <div className="live-player-row-name">
                     {p.summonerName}{isMe && <span className="live-me-tag">YOU</span>}
-                    <span className="live-player-level">Lv.{p.level ?? '?'}</span>
+                    {p.level != null && <span className="live-player-level">Lv.{p.level}</span>}
                   </div>
                   <div className="live-player-champ-name">{p.championName}</div>
                 </div>

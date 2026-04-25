@@ -14,16 +14,35 @@
   --red-bright: #C84040;
   --red-dim: rgba(200, 60, 60, 0.12);
   --border: #191919;
-  --border-mid: #222;
+  --border-mid: #242424;
   --text: #E8DCC8;
-  --text-dim: #555;
-  --text-mid: #888;
+  --text-dim: #666;
+  --text-mid: #999;
   --win: #3DD68C;
   --loss: #E44D4D;
   --sidebar-w: 224px;
   --font-h: 'Cinzel', Georgia, serif;
   --font-b: 'Inter', system-ui, sans-serif;
   --radius: 8px;
+}
+
+[data-theme="bloodmoon"] {
+  --bg: #060304;
+  --bg-2: #0d0608;
+  --bg-card: #120709;
+  --bg-hover: #1a080a;
+  --gold: #C84040;
+  --gold-light: #E87070;
+  --gold-dim: rgba(200, 60, 60, 0.1);
+  --gold-border: rgba(200, 60, 60, 0.22);
+  --gold-glow: 0 0 28px rgba(200, 60, 60, 0.2);
+  --border: #1c0a0a;
+  --border-mid: #261010;
+  --text: #F0DDD8;
+  --text-dim: #6B5050;
+  --text-mid: #A07070;
+  --win: #3DD68C;
+  --loss: #FF6B6B;
 }
 
 html, body, #root { height: 100%; overflow: hidden; }
@@ -380,7 +399,7 @@ body {
   font-weight: 700;
   line-height: 1;
 }
-.rank-division { font-size: 20px; font-weight: 400; margin-left: 6px; }
+.rank-division { font-size: 20px; font-weight: 400; margin-left: 6px; font-family: var(--font-h); }
 
 .rank-lp { font-size: 13px; color: var(--text-mid); margin-top: 6px; }
 
@@ -418,7 +437,24 @@ body {
 .profile-rotation-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 6px; overflow: hidden; text-align: center; transition: border-color 0.14s; }
 .profile-rotation-card:hover { border-color: var(--gold-border); }
 .profile-rotation-img { width: 100%; aspect-ratio: 1; object-fit: cover; display: block; }
-.profile-rotation-name { font-size: 9px; color: var(--text-dim); padding: 4px 4px 5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.profile-rotation-name { font-size: 10px; color: var(--text-mid); padding: 4px 4px 5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+.opgg-link {
+  background: rgba(200, 155, 60, 0.08);
+  border: 1px solid var(--gold-border);
+  border-radius: 4px;
+  color: var(--gold);
+  font-size: 10px;
+  font-weight: 700;
+  font-family: var(--font-h);
+  letter-spacing: 1px;
+  padding: 3px 8px;
+  cursor: pointer;
+  transition: background 0.14s, border-color 0.14s;
+  line-height: 1;
+  flex-shrink: 0;
+}
+.opgg-link:hover { background: var(--gold-dim); border-color: var(--gold); }
 
 /* ── Champions ───────────────────────────────── */
 .champ-toolbar {
@@ -1175,4 +1211,46 @@ body.overlay-mode {
 }
 body.overlay-mode #root {
   background: transparent;
+}
+
+/* ── Image drag prevention ───────────────────── */
+img { -webkit-user-drag: none; }
+
+/* ── Settings theme toggle ───────────────────── */
+.settings-link {
+  color: var(--gold);
+  cursor: pointer;
+  text-decoration: none;
+  transition: color 0.12s;
+}
+.settings-link:hover { color: var(--gold-light); text-decoration: underline; }
+
+.theme-btn {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 3px;
+  padding: 10px 14px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-mid);
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: all 0.14s;
+  text-align: left;
+}
+.theme-btn:hover { border-color: var(--gold-border); }
+.theme-btn.active { border-color: var(--gold); background: var(--gold-dim); }
+
+.theme-btn-name {
+  font-size: 13px;
+  font-weight: 600;
+  font-family: var(--font-h);
+  color: var(--text);
+}
+.theme-btn.active .theme-btn-name { color: var(--gold); }
+
+.theme-btn-desc {
+  font-size: 10px;
+  color: var(--text-dim);
 }

@@ -128,29 +128,29 @@ export default function OverlayApp() {
 
         {/* Challenge list */}
         <div style={{ flex: 1, overflowY: 'auto', padding: '6px 8px' }}>
-          {loading && <div style={{ textAlign: 'center', padding: 24, color: '#555', fontSize: 11 }}>Loading...</div>}
+          {loading && <div style={{ textAlign: 'center', padding: 24, color: '#777', fontSize: 11 }}>Loading...</div>}
           {!loading && pinned.length === 0 && (
-            <div style={{ textAlign: 'center', padding: 24, color: '#444', fontSize: 11, lineHeight: 1.7 }}>
+            <div style={{ textAlign: 'center', padding: 24, color: '#666', fontSize: 11, lineHeight: 1.7 }}>
               No pinned challenges.<br />Pin with ★ in the Challenges tab.
             </div>
           )}
           {!loading && pinned.map(c => {
-            const color = TIER_COLOR[c.level] || '#666'
+            const color = TIER_COLOR[c.level] || '#888'
             const barColor = c.isComplete ? '#3DD68C' : isDead ? '#C84040' : color
-            const rowBg    = c.isComplete ? 'rgba(61,214,140,0.05)' : isDead ? 'rgba(200,50,50,0.07)' : 'rgba(255,255,255,0.02)'
-            const border   = c.isComplete ? 'rgba(61,214,140,0.12)' : isDead ? 'rgba(200,50,50,0.18)' : 'rgba(255,255,255,0.04)'
+            const rowBg    = c.isComplete ? 'rgba(61,214,140,0.07)' : isDead ? 'rgba(200,50,50,0.09)' : 'rgba(255,255,255,0.03)'
+            const border   = c.isComplete ? 'rgba(61,214,140,0.18)' : isDead ? 'rgba(200,50,50,0.25)' : 'rgba(255,255,255,0.07)'
             return (
               <div key={c.id} style={{ marginBottom: 5, padding: '5px 7px', borderRadius: 6, background: rowBg, border: `1px solid ${border}` }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 3 }}>
-                  <span style={{ fontSize: 11, color: c.isComplete ? '#3DD68C' : isDead ? '#E44D4D' : '#CCC', fontWeight: 500, flex: 1, marginRight: 4, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  <span style={{ fontSize: 11, color: c.isComplete ? '#3DD68C' : isDead ? '#E77' : '#E8DCC8', fontWeight: 500, flex: 1, marginRight: 4, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                     {c.name}
                   </span>
-                  <span style={{ fontSize: 9, color, fontWeight: 600, flexShrink: 0 }}>{c.level}</span>
+                  <span style={{ fontSize: 9, color, fontWeight: 700, flexShrink: 0 }}>{c.level !== 'NONE' ? c.level : ''}</span>
                 </div>
-                <div style={{ height: 3, background: 'rgba(255,255,255,0.06)', borderRadius: 2 }}>
+                <div style={{ height: 3, background: 'rgba(255,255,255,0.12)', borderRadius: 2 }}>
                   <div style={{ height: '100%', width: `${c.pct}%`, background: barColor, borderRadius: 2, transition: 'width 0.3s' }} />
                 </div>
-                <div style={{ fontSize: 9, color: '#555', marginTop: 2 }}>
+                <div style={{ fontSize: 9, color: '#888', marginTop: 2 }}>
                   {c.value.toLocaleString()}{c.nextVal ? ` / ${c.nextVal.toLocaleString()} → ${c.next[0]}` : ' · Complete'}
                 </div>
               </div>
@@ -161,9 +161,9 @@ export default function OverlayApp() {
         {/* Opacity slider */}
         <div style={{ padding: '5px 9px', borderTop: '1px solid rgba(255,255,255,0.05)', flexShrink: 0, WebkitAppRegion: 'no-drag' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
-            <span style={{ fontSize: 9, color: '#444', width: 44, flexShrink: 0 }}>Opacity</span>
+            <span style={{ fontSize: 9, color: '#777', width: 44, flexShrink: 0 }}>Opacity</span>
             <input type="range" min="0.2" max="1" step="0.05" value={opacity} onChange={e => handleOpacity(e.target.value)} style={{ flex: 1, accentColor: '#C89B3C', height: 3 }} />
-            <span style={{ fontSize: 9, color: '#444', width: 28, textAlign: 'right' }}>{Math.round(opacity * 100)}%</span>
+            <span style={{ fontSize: 9, color: '#777', width: 28, textAlign: 'right' }}>{Math.round(opacity * 100)}%</span>
           </div>
         </div>
       </div>

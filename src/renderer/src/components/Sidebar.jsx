@@ -26,16 +26,22 @@ export default function Sidebar({ page, setPage, summoner, ddragon, lcuStatus })
         </div>
       </div>
 
-      <div className="sidebar-brand">
+      <div className="sidebar-brand" onClick={() => setPage('profile')} style={{ cursor: 'pointer' }}>
         <div className="brand-logo">
-          <svg className="brand-hex" viewBox="0 0 40 46" xmlns="http://www.w3.org/2000/svg">
-            <path d="M20 0L40 11.5V34.5L20 46L0 34.5V11.5L20 0Z" />
-            <path d="M20 8L32 15V29L20 36L8 29V15L20 8Z" fill="#050505" />
-            <text x="20" y="27" textAnchor="middle" fontSize="11" fontWeight="bold" fill="#C89B3C" fontFamily="Cinzel, Georgia, serif">LoL</text>
+          {/* Blood Moon crescent icon */}
+          <svg className="brand-hex" viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <mask id="moon-crescent-mask">
+                <circle cx="20" cy="20" r="17" fill="white"/>
+                <circle cx="27" cy="14" r="13" fill="black"/>
+              </mask>
+            </defs>
+            <circle cx="20" cy="20" r="17" fill="var(--gold)" mask="url(#moon-crescent-mask)"/>
+            <circle cx="20" cy="20" r="17" fill="none" stroke="var(--gold)" strokeWidth="0.6" opacity="0.35"/>
           </svg>
-          <span className="brand-name">MoonBase</span>
+          <span className="brand-name">BloodMoon</span>
         </div>
-        <div className="brand-sub">LoLMoonBase</div>
+        <div className="brand-sub">LoLBloodMoon</div>
       </div>
 
       <nav className="sidebar-nav">
@@ -65,7 +71,7 @@ export default function Sidebar({ page, setPage, summoner, ddragon, lcuStatus })
 
       <div className="sidebar-profile">
         {iconUrl
-          ? <img src={iconUrl} alt="" className="sidebar-avatar" />
+          ? <img src={iconUrl} alt="" className="sidebar-avatar" draggable={false} />
           : <div className="sidebar-avatar-placeholder">◈</div>
         }
         {displayName ? (

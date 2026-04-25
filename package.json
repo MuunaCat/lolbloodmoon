@@ -1,5 +1,5 @@
 {
-  "name": "lolmoonbase",
+  "name": "lolbloodmoon",
   "version": "1.1.0",
   "description": "Personal League of Legends stat tracker desktop application",
   "main": "out/main/index.js",
@@ -12,8 +12,8 @@
     "start": "electron-vite preview"
   },
   "build": {
-    "appId": "com.lolmoonbase.app",
-    "productName": "LoLMoonBase",
+    "appId": "com.lolbloodmoon.app",
+    "productName": "LoLBloodMoon",
     "directories": {
       "output": "dist"
     },

@@ -12,28 +12,48 @@ const PAGES = {
   matches: Matches, live: LiveGame, settings: Settings
 }
 
-const POLL_INTERVAL = 5 * 60 * 1000  // 5 min Riot API polling
-const LCU_INTERVAL  = 4 * 1000       // 4s LCU status check
+const POLL_INTERVAL = 5 * 60 * 1000
+const LCU_INTERVAL  = 4 * 1000
 
 export default function App() {
-  const [page, setPage]         = useState('profile')
-  const [summoner, setSummoner] = useState(null)
-  const [ddragon, setDDragon]   = useState(null)
-  const [loading, setLoading]   = useState(true)
-  const [error, setError]       = useState(null)
+  const [page, setPage]           = useState('profile')
+  const [summoner, setSummoner]   = useState(null)
+  const [ddragon, setDDragon]     = useState(null)
+  const [loading, setLoading]     = useState(true)
+  const [error, setError]         = useState(null)
   const [lcuStatus, setLcuStatus] = useState({ connected: false, phase: null })
   const [matchRefreshKey, setMatchRefreshKey] = useState(0)
+  const [region, setRegion]       = useState('EUW')
+  const [theme, setTheme]         = useState('default')
+  const [champInitSearch, setChampInitSearch] = useState('')
 
   const prevPhaseRef    = useRef(null)
   const lcuConnectedRef = useRef(false)
   const pollTimerRef    = useRef(null)
   const lcuTimerRef     = useRef(null)
+  const notifiedExpiry  = useRef(false)
+
+  // Apply theme to document root
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', theme)
+  }, [theme])
+
+  // Load saved theme on startup
+  useEffect(() => {
+    window.api.getTheme().then(t => setTheme(t)).catch(() => {})
+  }, [])
+
+  const handleThemeChange = useCallback((newTheme) => {
+    setTheme(newTheme)
+    window.api.saveTheme(newTheme).catch(() => {})
+  }, [])
 
   const loadApp = useCallback(async () => {
     setLoading(true)
     setError(null)
     try {
       const settings = await window.api.getSettings()
+      setRegion(settings.region || 'EUW')
       if (!settings.apiKey || !settings.summonerName) {
         setPage('settings')
         setLoading(false)
@@ -42,11 +62,21 @@ export default function App() {
       const [sum, dd] = await Promise.all([window.api.getSummoner(), window.api.getDDragon()])
       setSummoner(sum)
       setDDragon(dd)
+      notifiedExpiry.current = false
     } catch (e) {
-      const msg = e.message === 'Unauthorized'
+      const isExpired = e.message === 'Unauthorized'
+      const msg = isExpired
         ? 'API key expired or invalid. Development keys expire every 24 hours — regenerate yours at developer.riotgames.com, then update it in Settings.'
         : e.message
       setError(msg)
+      if (isExpired && !notifiedExpiry.current) {
+        notifiedExpiry.current = true
+        try {
+          new Notification('LoLBloodMoon — API Key Expired', {
+            body: 'Development keys expire every 24 hours. Open Settings to update.'
+          })
+        } catch {}
+      }
     } finally {
       setLoading(false)
     }
@@ -58,7 +88,11 @@ export default function App() {
     setPage('profile')
   }, [loadApp])
 
-  // Riot API polling — refresh match history every 5 min
+  const navigateToChampion = useCallback((champName) => {
+    setChampInitSearch(champName)
+    setPage('champions')
+  }, [])
+
   useEffect(() => {
     pollTimerRef.current = setInterval(() => {
       setMatchRefreshKey(k => k + 1)
@@ -66,7 +100,6 @@ export default function App() {
     return () => clearInterval(pollTimerRef.current)
   }, [])
 
-  // LCU polling — check game phase every 4 seconds
   useEffect(() => {
     const checkLcu = async () => {
       const status = await window.api.lcu.status()
@@ -75,20 +108,15 @@ export default function App() {
       const prev = prevPhaseRef.current
       const curr = status.phase
 
-      // Game started → show overlay
       if (prev !== 'InProgress' && curr === 'InProgress') {
         window.api.showOverlay()
       }
-
-      // Game ended → hide overlay + refresh match history after delay
       if (prev === 'InProgress' && curr !== 'InProgress') {
         window.api.hideOverlay()
       }
       if (prev === 'InProgress' && curr === 'EndOfGame') {
         setTimeout(() => setMatchRefreshKey(k => k + 1), 3 * 60 * 1000)
       }
-
-      // Client just disconnected → immediate refresh
       if (prev !== null && !status.connected && lcuConnectedRef.current) {
         setMatchRefreshKey(k => k + 1)
       }
@@ -127,6 +155,11 @@ export default function App() {
             onSettingsSaved={handleSettingsSaved}
             matchRefreshKey={matchRefreshKey}
             onManualRefresh={() => setMatchRefreshKey(k => k + 1)}
+            region={region}
+            theme={theme} onThemeChange={handleThemeChange}
+            onChampionNavigate={navigateToChampion}
+            initialSearch={page === 'champions' ? champInitSearch : ''}
+            onInitSearchConsumed={() => setChampInitSearch('')}
           />
         )}
       </div>

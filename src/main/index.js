@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain } = require('electron')
+const { app, BrowserWindow, ipcMain, shell } = require('electron')
 const { join } = require('path')
 const https = require('https')
 const fs = require('fs')
@@ -333,6 +333,9 @@ app.whenReady().then(() => {
   ipcMain.handle('store:get-srank-overrides', () => store.get('srankOverrides', {}))
   ipcMain.handle('store:save-srank-overrides', (_, data) => { store.set('srankOverrides', data); return true })
   ipcMain.handle('store:get-puuid', () => store.get('cachedPuuid', ''))
+  ipcMain.handle('store:get-theme', () => store.get('theme', 'default'))
+  ipcMain.handle('store:save-theme', (_, t) => { store.set('theme', t); return true })
+  ipcMain.handle('shell:open-external', (_, url) => shell.openExternal(url))
 
   // ── Overlay window ────────────────────────────
   ipcMain.handle('overlay:show', () => {
@@ -350,6 +353,7 @@ app.whenReady().then(() => {
       }
     })
     overlayWin.setOpacity(op)
+    overlayWin.setAlwaysOnTop(true, 'screen-saver')
     if (process.env.NODE_ENV === 'development') {
       overlayWin.loadURL(`${process.env.ELECTRON_RENDERER_URL}?overlay=true`)
     } else {
