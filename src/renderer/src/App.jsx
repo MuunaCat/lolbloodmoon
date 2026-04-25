@@ -4,13 +4,12 @@ import Profile from './pages/Profile'
 import Champions from './pages/Champions'
 import Challenges from './pages/Challenges'
 import Matches from './pages/Matches'
-import Trackers from './pages/Trackers'
 import LiveGame from './pages/LiveGame'
 import Settings from './pages/Settings'
 
 const PAGES = {
   profile: Profile, champions: Champions, challenges: Challenges,
-  matches: Matches, trackers: Trackers, live: LiveGame, settings: Settings
+  matches: Matches, live: LiveGame, settings: Settings
 }
 
 const POLL_INTERVAL = 5 * 60 * 1000  // 5 min Riot API polling

@@ -3,7 +3,6 @@ const NAV = [
   { id: 'champions',  label: 'Champions',   icon: '⚔' },
   { id: 'challenges', label: 'Challenges',  icon: '◆' },
   { id: 'matches',    label: 'Matches',     icon: '⊞' },
-  { id: 'trackers',   label: 'Trackers',    icon: '◎' },
   { id: 'live',       label: 'Live Game',   icon: '◉', live: true },
   { id: 'settings',   label: 'Settings',    icon: '⚙' }
 ]

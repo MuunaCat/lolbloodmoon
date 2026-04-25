@@ -14,6 +14,25 @@ const CATEGORY_LABELS = {
   IMAGINATION: 'Imagination', EXPERTISE: 'Expertise', COLLECTION: 'Collection'
 }
 
+const TRACKER_DEFS = [
+  {
+    id: 'srank',
+    label: 'S Rank Every Champion',
+    desc: 'Earn a chest (S−/S/S+) on every champion this season',
+    check: (m) => m?.chestGranted === true,
+    detail: (m) => m ? (m.chestGranted ? 'Chest earned' : `M${m.championLevel}`) : 'Not played'
+  },
+  {
+    id: 'mastery5',
+    label: 'Mastery 5 Every Champion',
+    desc: 'Reach Mastery Level 5 on every champion',
+    check: (m) => m && m.championLevel >= 5,
+    detail: (m) => m ? `M${m.championLevel}` : 'Not played'
+  }
+]
+
+const FILTERS = ['All', 'Done', 'Remaining']
+
 function timeAgo(ms) {
   if (!ms) return null
   const diff = Date.now() - ms
@@ -28,15 +47,31 @@ function tierPct(current, max) {
   return Math.min(100, Math.round((current / max) * 100))
 }
 
-export default function Challenges({ summoner, appError }) {
-  const [playerData, setPlayerData] = useState(null)
-  const [configs, setConfigs]       = useState(null)
-  const [loading, setLoading]       = useState(false)
-  const [error, setError]           = useState(null)
-  const [search, setSearch]         = useState('')
-  const [expanded, setExpanded]     = useState(null)
-  const [showAll, setShowAll]       = useState(false)
-  const [catFilter, setCatFilter]   = useState('ALL')
+export default function Challenges({ summoner, ddragon, appError }) {
+  // Tracker state
+  const [mastery, setMastery]           = useState(null)
+  const [masteryLoading, setMasteryLoading] = useState(false)
+  const [openTracker, setOpenTracker]   = useState(null)
+  const [trackerFilter, setTrackerFilter] = useState('All')
+  const [trackerSearch, setTrackerSearch] = useState('')
+
+  // Challenge state
+  const [playerData, setPlayerData]     = useState(null)
+  const [configs, setConfigs]           = useState(null)
+  const [loading, setLoading]           = useState(false)
+  const [error, setError]               = useState(null)
+  const [search, setSearch]             = useState('')
+  const [expanded, setExpanded]         = useState(null)
+  const [showAll, setShowAll]           = useState(false)
+
+  useEffect(() => {
+    if (!summoner) return
+    setMasteryLoading(true)
+    window.api.getAllMastery(summoner.id)
+      .then(setMastery)
+      .catch(() => {})
+      .finally(() => setMasteryLoading(false))
+  }, [summoner?.id])
 
   useEffect(() => {
     if (!summoner) return
@@ -50,11 +85,49 @@ export default function Challenges({ summoner, appError }) {
       .finally(() => setLoading(false))
   }, [summoner?.puuid])
 
+  const masteryById = useMemo(() => {
+    if (!mastery) return {}
+    const map = {}
+    mastery.forEach(m => { map[m.championId] = m })
+    return map
+  }, [mastery])
+
+  const allChampions = useMemo(() => {
+    if (!ddragon) return []
+    return Object.values(ddragon.champions).sort((a, b) => a.name.localeCompare(b.name))
+  }, [ddragon])
+
+  const trackerStats = useMemo(() => {
+    return TRACKER_DEFS.map(t => {
+      const withStatus = allChampions.map(c => ({
+        ...c,
+        masteryData: masteryById[parseInt(c.key)] || null,
+        done: t.check(masteryById[parseInt(c.key)] || null)
+      }))
+      const done  = withStatus.filter(c => c.done).length
+      const total = withStatus.length
+      return { ...t, withStatus, done, total, pct: total ? Math.round((done / total) * 100) : 0 }
+    })
+  }, [allChampions, masteryById])
+
+  const filteredTrackerChamps = useMemo(() => {
+    const t = trackerStats.find(t => t.id === openTracker)
+    if (!t) return []
+    let list = t.withStatus
+    if (trackerFilter === 'Done')      list = list.filter(c => c.done)
+    if (trackerFilter === 'Remaining') list = list.filter(c => !c.done)
+    if (trackerSearch) {
+      const q = trackerSearch.toLowerCase()
+      list = list.filter(c => c.name.toLowerCase().includes(q))
+    }
+    return list
+  }, [trackerStats, openTracker, trackerFilter, trackerSearch])
+
+  // Challenges
   const merged = useMemo(() => {
     if (!configs || !playerData) return []
     const playerMap = {}
     playerData.challenges?.forEach(c => { playerMap[c.challengeId] = c })
-
     return configs
       .filter(c => c.state === 'ENABLED' && c.localizedNames)
       .map(c => {
@@ -104,6 +177,101 @@ export default function Challenges({ summoner, appError }) {
     <div className="page">
       <h1 className="page-title">Challenges</h1>
 
+      {/* ── Trackers ───────────────────────────── */}
+      <div className="section-label">Trackers</div>
+
+      {masteryLoading && <div className="loading" style={{ padding: '20px 0' }}><div className="spinner" /></div>}
+
+      {!masteryLoading && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 28 }}>
+          {trackerStats.map(t => {
+            const isOpen = openTracker === t.id
+            return (
+              <div key={t.id} className={`tracker-summary-card${isOpen ? ' open' : ''}`}>
+                <div
+                  className="tracker-summary-header"
+                  onClick={() => { setOpenTracker(isOpen ? null : t.id); setTrackerFilter('All'); setTrackerSearch('') }}
+                >
+                  <div>
+                    <div className="tracker-summary-label">{t.label}</div>
+                    <div className="tracker-summary-desc">{t.desc}</div>
+                  </div>
+                  <div className="tracker-summary-right">
+                    <span
+                      className="tracker-summary-pct"
+                      style={{ color: t.pct === 100 ? 'var(--win)' : 'var(--gold)' }}
+                    >{t.pct}%</span>
+                    <span className="tracker-summary-count">{t.done}/{t.total}</span>
+                    <span style={{ color: 'var(--text-dim)', fontSize: 10 }}>{isOpen ? '▲' : '▼'}</span>
+                  </div>
+                </div>
+                <div className="tracker-bar-track" style={{ margin: '10px 0 0' }}>
+                  <div
+                    className="tracker-bar-fill"
+                    style={{ width: `${t.pct}%`, background: t.pct === 100 ? 'var(--win)' : 'var(--gold)' }}
+                  />
+                </div>
+
+                {isOpen && (
+                  <div className="tracker-expanded">
+                    <div className="tracker-toolbar" style={{ marginTop: 16 }}>
+                      <div className="filter-btns">
+                        {FILTERS.map(f => (
+                          <button
+                            key={f}
+                            className={`filter-btn${trackerFilter === f ? ' active' : ''}`}
+                            onClick={() => setTrackerFilter(f)}
+                          >
+                            {f === 'Done' ? `✓ Done (${t.done})` : f === 'Remaining' ? `✗ Remaining (${t.total - t.done})` : `All (${t.total})`}
+                          </button>
+                        ))}
+                      </div>
+                      <input
+                        className="search-input"
+                        placeholder="Search..."
+                        value={trackerSearch}
+                        onChange={e => setTrackerSearch(e.target.value)}
+                      />
+                    </div>
+
+                    <div className="tracker-grid" style={{ marginTop: 12 }}>
+                      {filteredTrackerChamps.map(champ => {
+                        const imgUrl = ddragon
+                          ? `https://ddragon.leagueoflegends.com/cdn/${ddragon.version}/img/champion/${champ.image.full}`
+                          : null
+                        return (
+                          <div key={champ.key} className={`tracker-card${champ.done ? ' done' : ' todo'}`}>
+                            <div className="tracker-card-img-wrap">
+                              {imgUrl
+                                ? <img src={imgUrl} alt={champ.name} className="tracker-champ-img" />
+                                : <div className="tracker-champ-placeholder">⚔</div>
+                              }
+                              <div className={`tracker-status-badge${champ.done ? ' done' : ' todo'}`}>
+                                {champ.done ? '✓' : '✗'}
+                              </div>
+                            </div>
+                            <div className="tracker-card-body">
+                              <div className="tracker-champ-name">{champ.name}</div>
+                              <div className="tracker-champ-detail">{t.detail(champ.masteryData)}</div>
+                            </div>
+                          </div>
+                        )
+                      })}
+                      {filteredTrackerChamps.length === 0 && (
+                        <div className="empty-state" style={{ gridColumn: '1/-1' }}>No champions match.</div>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )
+          })}
+        </div>
+      )}
+
+      {/* ── Challenges ─────────────────────────── */}
+      <div className="section-label">Challenges</div>
+
       {loading && <div className="loading"><div className="spinner" /><span>Loading challenges...</span></div>}
       {error && !loading && <div className="error-box">⚠ {error}</div>}
 
@@ -150,16 +318,10 @@ export default function Challenges({ summoner, appError }) {
                 value={search}
                 onChange={e => setSearch(e.target.value)}
               />
-              <button
-                className={`filter-btn${showAll ? '' : ' active'}`}
-                onClick={() => setShowAll(false)}
-              >
+              <button className={`filter-btn${showAll ? '' : ' active'}`} onClick={() => setShowAll(false)}>
                 In Progress ({progressCount})
               </button>
-              <button
-                className={`filter-btn${showAll ? ' active' : ''}`}
-                onClick={() => setShowAll(true)}
-              >
+              <button className={`filter-btn${showAll ? ' active' : ''}`} onClick={() => setShowAll(true)}>
                 All ({merged.length})
               </button>
             </div>
@@ -194,9 +356,7 @@ export default function Challenges({ summoner, appError }) {
                       {c.level !== 'NONE' && (
                         <span className="ch-tier-badge" style={{ color, borderColor: `${color}44` }}>{c.level}</span>
                       )}
-                      {c.value > 0 && (
-                        <span className="ch-value">{c.value.toLocaleString()}</span>
-                      )}
+                      {c.value > 0 && <span className="ch-value">{c.value.toLocaleString()}</span>}
                       <span className="ch-chevron">{isOpen ? '▲' : '▼'}</span>
                     </div>
                   </div>
@@ -212,7 +372,6 @@ export default function Challenges({ summoner, appError }) {
                   {isOpen && (
                     <div className="ch-expanded">
                       {c.description && <p className="ch-desc">{c.description}</p>}
-
                       <div className="ch-thresholds">
                         {thresholdEntries.map(([tier, data]) => {
                           const thVal = typeof data === 'object' ? data.value : data
@@ -233,7 +392,6 @@ export default function Challenges({ summoner, appError }) {
                           )
                         })}
                       </div>
-
                       <div className="ch-meta-row">
                         {c.percentile != null && (
                           <span className="ch-meta-item">Top {(c.percentile * 100).toFixed(1)}% of players</span>
@@ -241,9 +399,7 @@ export default function Challenges({ summoner, appError }) {
                         {c.achievedTime && (
                           <span className="ch-meta-item">Achieved {timeAgo(c.achievedTime)}</span>
                         )}
-                        {c.tracking && (
-                          <span className="ch-meta-item">{c.tracking}</span>
-                        )}
+                        {c.tracking && <span className="ch-meta-item">{c.tracking}</span>}
                       </div>
                     </div>
                   )}

@@ -207,6 +207,18 @@ app.whenReady().then(() => {
     return riotGet(`https://${REGIONAL[region]}.api.riotgames.com/lol/match/v5/matches/${matchId}`, apiKey)
   })
 
+  ipcMain.handle('api:champion-match-ids', async (_, puuid, championId) => {
+    const apiKey = store.get('apiKey', '')
+    const region = store.get('region', 'EUW')
+    return riotGet(`https://${REGIONAL[region]}.api.riotgames.com/lol/match/v5/matches/by-puuid/${puuid}/ids?count=20&champion=${championId}`, apiKey)
+  })
+
+  ipcMain.handle('api:champion-rotation', async () => {
+    const apiKey = store.get('apiKey', '')
+    const region = store.get('region', 'EUW')
+    return riotGet(`https://${PLATFORM[region]}.api.riotgames.com/lol/platform/v3/champion-rotations`, apiKey)
+  })
+
   ipcMain.handle('api:ddragon', async () => {
     const versions = await jsonGet('https://ddragon.leagueoflegends.com/api/versions.json')
     const version = versions[0]

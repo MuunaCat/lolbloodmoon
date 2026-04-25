@@ -237,11 +237,59 @@ function InGameView({ data, summoner, ddragon }) {
           )}
         </div>
       )}
+      {data.events && <EventFeed events={data.events} />}
       <div className="live-teams">
         <TeamTable title="Blue Team" players={blueTeam} color="#5CB8E4" ddragon={ddragon} activePlayer={activePlayer} />
         <TeamTable title="Red Team"  players={redTeam}  color="#E44D4D" ddragon={ddragon} activePlayer={activePlayer} />
       </div>
     </>
+  )
+}
+
+function ItemIcon({ itemId, version }) {
+  if (!itemId) return null
+  return (
+    <img
+      src={`https://ddragon.leagueoflegends.com/cdn/${version}/img/item/${itemId}.png`}
+      alt=""
+      className="live-item-icon"
+      onError={e => { e.target.style.display = 'none' }}
+    />
+  )
+}
+
+function EventFeed({ events }) {
+  if (!events?.Events?.length) return null
+  const relevant = events.Events
+    .filter(e => ['ChampionKill', 'DragonKill', 'BaronKill', 'TurretKilled', 'InhibitorKilled', 'HeraldKill', 'Ace', 'FirstBlood'].includes(e.EventName))
+    .slice(-8)
+    .reverse()
+
+  if (!relevant.length) return null
+
+  const icon = { ChampionKill: '⚔', DragonKill: '🐉', BaronKill: '♜', TurretKilled: '🗼', InhibitorKilled: '◈', HeraldKill: '👁', Ace: '★', FirstBlood: '🩸' }
+  const label = {
+    ChampionKill: (e) => `${e.KillerName} killed ${e.VictimName}`,
+    DragonKill: (e) => `${e.KillerName} slew ${e.DragonType || ''} Dragon${e.Stolen ? ' (stolen!)' : ''}`,
+    BaronKill: (e) => `${e.KillerName} slew Baron${e.Stolen ? ' (stolen!)' : ''}`,
+    TurretKilled: (e) => `${e.KillerName || 'Unknown'} destroyed a Turret`,
+    InhibitorKilled: (e) => `${e.KillerName || 'Unknown'} destroyed an Inhibitor`,
+    HeraldKill: (e) => `${e.KillerName} slew the Rift Herald`,
+    Ace: (e) => `${e.AceingTeam} got an ACE!`,
+    FirstBlood: (e) => `${e.Recipient} got First Blood!`,
+  }
+
+  return (
+    <div className="live-event-feed">
+      <div className="live-team-title" style={{ color: 'var(--text-mid)', marginBottom: 10 }}>Events</div>
+      {relevant.map((e, i) => (
+        <div key={e.EventID ?? i} className="live-event-row">
+          <span className="live-event-icon">{icon[e.EventName] || '◉'}</span>
+          <span className="live-event-text">{label[e.EventName]?.(e) ?? e.EventName}</span>
+          <span className="live-event-time">{formatTime(e.EventTime)}</span>
+        </div>
+      ))}
+    </div>
   )
 }
 
@@ -256,21 +304,34 @@ function TeamTable({ title, players, color, ddragon, activePlayer }) {
           const imgUrl = champ && ddragon
             ? `https://ddragon.leagueoflegends.com/cdn/${ddragon.version}/img/champion/${champ.image.full}`
             : null
+          const items = (p.items || []).filter(it => it.itemID).slice(0, 7)
           return (
-            <div key={i} className={`live-player-row${isMe ? ' me' : ''}`}>
-              {imgUrl ? <img src={imgUrl} alt={p.championName} className="live-champ-img" /> : <div className="live-champ-placeholder">⚔</div>}
-              <div className="live-player-info">
-                <div className="live-player-row-name">{p.summonerName}{isMe && <span className="live-me-tag">YOU</span>}</div>
-                <div className="live-player-champ-name">{p.championName}</div>
+            <div key={i} className={`live-player-row${isMe ? ' me' : ''}`} style={{ flexWrap: 'wrap' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, width: '100%' }}>
+                {imgUrl ? <img src={imgUrl} alt={p.championName} className="live-champ-img" /> : <div className="live-champ-placeholder">⚔</div>}
+                <div className="live-player-info">
+                  <div className="live-player-row-name">
+                    {p.summonerName}{isMe && <span className="live-me-tag">YOU</span>}
+                    <span className="live-player-level">Lv.{p.level ?? '?'}</span>
+                  </div>
+                  <div className="live-player-champ-name">{p.championName}</div>
+                </div>
+                <div className="live-player-scores">
+                  <span className="win-text">{p.scores?.kills ?? 0}</span>
+                  <span style={{ color: 'var(--text-dim)' }}>/</span>
+                  <span className="loss-text">{p.scores?.deaths ?? 0}</span>
+                  <span style={{ color: 'var(--text-dim)' }}>/</span>
+                  <span style={{ color: 'var(--text-mid)' }}>{p.scores?.assists ?? 0}</span>
+                </div>
+                <div className="live-player-cs">{p.scores?.creepScore ?? 0} CS</div>
               </div>
-              <div className="live-player-scores">
-                <span className="win-text">{p.scores?.kills ?? 0}</span>
-                <span style={{ color: 'var(--text-dim)' }}>/</span>
-                <span className="loss-text">{p.scores?.deaths ?? 0}</span>
-                <span style={{ color: 'var(--text-dim)' }}>/</span>
-                <span style={{ color: 'var(--text-mid)' }}>{p.scores?.assists ?? 0}</span>
-              </div>
-              <div className="live-player-cs">{p.scores?.creepScore ?? 0} CS</div>
+              {items.length > 0 && ddragon && (
+                <div className="live-player-items">
+                  {items.map((it, idx) => (
+                    <ItemIcon key={idx} itemId={it.itemID} version={ddragon.version} />
+                  ))}
+                </div>
+              )}
             </div>
           )
         })}
@@ -289,8 +350,19 @@ export default function LiveGame({ summoner, ddragon }) {
   const [lobby, setLobby]             = useState(null)
   const [queueTime, setQueueTime]     = useState(null)
   const [gameTime, setGameTime]       = useState(null)
+  const [displayTime, setDisplayTime] = useState(null)
   const summonerFetched               = useRef(false)
   const intervalRef                   = useRef(null)
+  const tickRef                       = useRef(null)
+
+  // Smooth local timer that counts up every second between polls
+  useEffect(() => {
+    clearInterval(tickRef.current)
+    if (gameTime == null) { setDisplayTime(null); return }
+    setDisplayTime(gameTime)
+    tickRef.current = setInterval(() => setDisplayTime(t => t != null ? t + 1 : t), 1000)
+    return () => clearInterval(tickRef.current)
+  }, [gameTime])
 
   const poll = async () => {
     const status = await window.api.lcu.status()
@@ -303,16 +375,19 @@ export default function LiveGame({ summoner, ddragon }) {
 
     if (p === 'InProgress') {
       const live = await window.api.lcu.live()
-      if (live) { setLiveData(live); setGameTime(live.gameData?.gameTime) }
+      if (live) {
+        setLiveData(live)
+        if (live.gameData?.gameTime != null) setGameTime(live.gameData.gameTime)
+      }
       setChampSelect(null); setLobby(null)
     } else if (p === 'ChampSelect') {
       const cs = await window.api.lcu.champSelect()
-      setChampSelect(cs); setLiveData(null)
+      setChampSelect(cs); setLiveData(null); setGameTime(null)
     } else if (['Lobby', 'Matchmaking', 'ReadyCheck'].includes(p)) {
       const [lb, qt] = await Promise.all([window.api.lcu.lobby(), window.api.lcu.queueTime()])
-      setLobby(lb); setQueueTime(qt); setLiveData(null); setChampSelect(null)
+      setLobby(lb); setQueueTime(qt); setLiveData(null); setChampSelect(null); setGameTime(null)
     } else {
-      setLiveData(null); setChampSelect(null); setLobby(null)
+      setLiveData(null); setChampSelect(null); setLobby(null); setGameTime(null)
     }
 
     if (!summonerFetched.current) {
@@ -329,6 +404,17 @@ export default function LiveGame({ summoner, ddragon }) {
     return () => clearInterval(intervalRef.current)
   }, [])
 
+  const [refreshing, setRefreshing] = useState(false)
+
+  const manualRefresh = async () => {
+    setRefreshing(true)
+    clearInterval(intervalRef.current)
+    summonerFetched.current = false
+    await poll()
+    intervalRef.current = setInterval(poll, POLL_MS)
+    setRefreshing(false)
+  }
+
   const isInGame    = phase === 'InProgress'
   const isInCS      = phase === 'ChampSelect'
   const isSearching = phase === 'Matchmaking' || phase === 'ReadyCheck'
@@ -339,9 +425,17 @@ export default function LiveGame({ summoner, ddragon }) {
       <h1 className="page-title">
         Live Game
         {isInGame    && <span className="live-badge">● LIVE</span>}
-        {isInGame    && gameTime && <span className="live-timer">{formatTime(gameTime)}</span>}
+        {isInGame    && displayTime != null && <span className="live-timer">{formatTime(displayTime)}</span>}
         {isInCS      && <span className="live-badge" style={{ color: 'var(--gold)' }}>● CHAMP SELECT</span>}
         {isSearching && <span className="live-badge" style={{ color: 'var(--text-mid)', animationDuration: '2s' }}>● SEARCHING</span>}
+        <button
+          className="btn-secondary"
+          style={{ marginLeft: 'auto', padding: '5px 14px', fontSize: 12 }}
+          onClick={manualRefresh}
+          disabled={refreshing}
+        >
+          {refreshing ? '...' : '↻ Refresh'}
+        </button>
       </h1>
 
       {!connected && (

@@ -21,11 +21,84 @@ function kdaRatio(k, d, a) {
 }
 
 const MODE_LABEL = {
-  CLASSIC: 'Summoner\'s Rift',
-  ARAM: 'ARAM',
-  URF: 'URF',
-  CHERRY: 'Arena',
-  TUTORIAL: 'Tutorial'
+  CLASSIC: 'Summoner\'s Rift', ARAM: 'ARAM', URF: 'URF',
+  CHERRY: 'Arena', TUTORIAL: 'Tutorial'
+}
+
+const QUEUE_FILTER_MODES = ['All', 'Ranked', 'Normal', 'ARAM', 'Other']
+
+function ItemIcon({ itemId, version }) {
+  if (!itemId) return <div className="match-item-placeholder" />
+  return (
+    <img
+      src={`https://ddragon.leagueoflegends.com/cdn/${version}/img/item/${itemId}.png`}
+      alt=""
+      className="match-item-icon"
+      onError={e => { e.target.style.display = 'none' }}
+    />
+  )
+}
+
+function MultiKillBadge({ me }) {
+  if (me.pentaKills  > 0) return <span className="multikill-badge penta">PENTA</span>
+  if (me.quadraKills > 0) return <span className="multikill-badge quadra">QUADRA</span>
+  if (me.tripleKills > 0) return <span className="multikill-badge triple">TRIPLE</span>
+  if (me.doubleKills > 0) return <span className="multikill-badge double">DOUBLE</span>
+  return null
+}
+
+function MatchDetail({ match, summoner, ddragon }) {
+  const me = match.info.participants.find(p => p.puuid === summoner.puuid)
+  if (!me) return null
+
+  const blue = match.info.participants.filter(p => p.teamId === 100)
+  const red  = match.info.participants.filter(p => p.teamId === 200)
+  const ver  = ddragon?.version
+
+  const items = [me.item0, me.item1, me.item2, me.item3, me.item4, me.item5, me.item6]
+
+  return (
+    <div className="match-detail">
+      {/* My items + stats */}
+      <div className="match-detail-my-row">
+        <div className="match-detail-section-label">Items</div>
+        <div className="match-item-row">
+          {items.map((id, i) => <ItemIcon key={i} itemId={id || null} version={ver} />)}
+        </div>
+        <div className="match-detail-stats-row">
+          <span className="match-detail-stat"><span style={{ color: 'var(--gold)' }}>{(me.goldEarned || 0).toLocaleString()}</span> gold</span>
+          <span className="match-detail-stat"><span style={{ color: 'var(--text-mid)' }}>{me.visionScore ?? 0}</span> vision</span>
+          <span className="match-detail-stat" title="Damage to champions"><span style={{ color: '#E44D4D' }}>{(me.totalDamageDealtToChampions || 0).toLocaleString()}</span> dmg</span>
+          <span className="match-detail-stat"><span style={{ color: 'var(--text-dim)' }}>{me.teamPosition || me.individualPosition || '—'}</span></span>
+        </div>
+      </div>
+
+      {/* Teams */}
+      <div className="match-detail-teams">
+        {[blue, red].map((team, ti) => (
+          <div key={ti} className="match-detail-team">
+            <div className="match-detail-team-label" style={{ color: ti === 0 ? '#5CB8E4' : '#E44D4D' }}>
+              {ti === 0 ? 'Blue' : 'Red'} {team[0]?.win ? '(Win)' : '(Loss)'}
+            </div>
+            {team.map((p, i) => {
+              const isMe = p.puuid === summoner.puuid
+              const champ = ddragon ? Object.values(ddragon.champions || {}).find(c => c.name === p.championName) : null
+              const img = champ && ver ? `https://ddragon.leagueoflegends.com/cdn/${ver}/img/champion/${champ.image.full}` : null
+              return (
+                <div key={i} className={`match-detail-player${isMe ? ' me' : ''}`}>
+                  {img ? <img src={img} alt={p.championName} className="match-detail-champ-img" /> : <div className="match-detail-champ-placeholder">⚔</div>}
+                  <span className="match-detail-player-name" style={{ color: isMe ? 'var(--gold)' : 'var(--text)' }}>{p.riotIdGameName || p.summonerName}</span>
+                  <span className="match-detail-player-kda">
+                    <span className="win-text">{p.kills}</span>/<span className="loss-text">{p.deaths}</span>/<span style={{ color: 'var(--text-mid)' }}>{p.assists}</span>
+                  </span>
+                </div>
+              )
+            })}
+          </div>
+        ))}
+      </div>
+    </div>
+  )
 }
 
 export default function Matches({ summoner, ddragon, appError, matchRefreshKey, onManualRefresh }) {
@@ -36,13 +109,9 @@ export default function Matches({ summoner, ddragon, appError, matchRefreshKey, 
   const [error, setError]         = useState(null)
   const [loaded, setLoaded]       = useState(0)
   const [lastUpdated, setLastUpdated] = useState(null)
-
-  const championById = useMemo(() => {
-    if (!ddragon) return {}
-    const map = {}
-    Object.values(ddragon.champions).forEach(c => { map[parseInt(c.key)] = c })
-    return map
-  }, [ddragon])
+  const [expanded, setExpanded]   = useState(null)
+  const [queueFilter, setQueueFilter] = useState('All')
+  const [resultFilter, setResultFilter] = useState('All')
 
   const fetchBatch = async (ids, existing = []) => {
     const results = await Promise.all(ids.map(id => window.api.getMatch(id).catch(() => null)))
@@ -53,7 +122,10 @@ export default function Matches({ summoner, ddragon, appError, matchRefreshKey, 
     if (!summoner) return
     setLoading(true)
     setMatches([])
+    setMatchIds([])
     setLoaded(0)
+    setError(null)
+    setExpanded(null)
     window.api.getMatchIds(summoner.puuid)
       .then(async ids => {
         setMatchIds(ids)
@@ -76,12 +148,32 @@ export default function Matches({ summoner, ddragon, appError, matchRefreshKey, 
     setLMore(false)
   }
 
+  const filteredMatches = useMemo(() => {
+    return matches.filter(match => {
+      const me = match.info.participants.find(p => p.puuid === summoner?.puuid)
+      if (!me) return false
+
+      if (resultFilter === 'Win'  && !me.win) return false
+      if (resultFilter === 'Loss' &&  me.win) return false
+
+      if (queueFilter !== 'All') {
+        const mode = match.info.gameMode
+        const qId  = match.info.queueId
+        if (queueFilter === 'Ranked' && ![420, 440].includes(qId))  return false
+        if (queueFilter === 'Normal' && ![400, 430].includes(qId))  return false
+        if (queueFilter === 'ARAM'   && qId !== 450)                return false
+        if (queueFilter === 'Other'  && [420, 440, 400, 430, 450].includes(qId)) return false
+      }
+      return true
+    })
+  }, [matches, queueFilter, resultFilter, summoner?.puuid])
+
   if (appError) return <div className="page"><div className="error-box">⚠ {appError}</div></div>
   if (!summoner) return <div className="page"><div className="error-box">⚠ Configure your settings first.</div></div>
 
   return (
     <div className="page">
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
         <h1 className="page-title" style={{ margin: 0, flex: 1 }}>Match History</h1>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexShrink: 0 }}>
           {lastUpdated && (
@@ -100,17 +192,43 @@ export default function Matches({ summoner, ddragon, appError, matchRefreshKey, 
         </div>
       </div>
 
+      {/* Filters */}
+      {!loading && matches.length > 0 && (
+        <div style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap' }}>
+          {['All', 'Win', 'Loss'].map(f => (
+            <button
+              key={f}
+              className={`filter-btn${resultFilter === f ? ' active' : ''}`}
+              onClick={() => setResultFilter(f)}
+            >{f}</button>
+          ))}
+          <div style={{ width: 1, background: 'var(--border-mid)', margin: '0 4px' }} />
+          {QUEUE_FILTER_MODES.map(f => (
+            <button
+              key={f}
+              className={`filter-btn${queueFilter === f ? ' active' : ''}`}
+              onClick={() => setQueueFilter(f)}
+            >{f}</button>
+          ))}
+          {filteredMatches.length !== matches.length && (
+            <span style={{ fontSize: 11, color: 'var(--text-dim)', alignSelf: 'center' }}>
+              {filteredMatches.length} of {matches.length} shown
+            </span>
+          )}
+        </div>
+      )}
+
       {loading && <div className="loading"><div className="spinner" /><span>Loading matches...</span></div>}
       {error && !loading && <div className="error-box">⚠ {error}</div>}
 
-      {!loading && !error && matches.length === 0 && (
-        <div className="empty-state">No recent matches found.</div>
+      {!loading && !error && filteredMatches.length === 0 && (
+        <div className="empty-state">No matches found{queueFilter !== 'All' || resultFilter !== 'All' ? ' for this filter' : ''}.</div>
       )}
 
-      {!loading && matches.length > 0 && (
+      {!loading && filteredMatches.length > 0 && (
         <>
           <div className="matches-list">
-            {matches.map(match => {
+            {filteredMatches.map(match => {
               const me = match.info.participants.find(p => p.puuid === summoner.puuid)
               if (!me) return null
 
@@ -125,36 +243,52 @@ export default function Matches({ summoner, ddragon, appError, matchRefreshKey, 
               const duration = formatDuration(match.info.gameDuration)
               const ago = timeAgo(match.info.gameCreation)
               const mode = MODE_LABEL[match.info.gameMode] || match.info.gameMode
+              const isOpen = expanded === match.metadata.matchId
 
               return (
-                <div key={match.metadata.matchId} className={`match-row ${win ? 'win' : 'loss'}`}>
-                  <div className={`match-outcome ${win ? 'win' : 'loss'}`}>{win ? 'WIN' : 'LOSS'}</div>
+                <div key={match.metadata.matchId}>
+                  <div
+                    className={`match-row ${win ? 'win' : 'loss'}${isOpen ? ' expanded' : ''}`}
+                    onClick={() => setExpanded(isOpen ? null : match.metadata.matchId)}
+                    style={{ cursor: 'pointer' }}
+                  >
+                    <div className={`match-outcome ${win ? 'win' : 'loss'}`}>{win ? 'WIN' : 'LOSS'}</div>
 
-                  {imgUrl
-                    ? <img src={imgUrl} alt={me.championName} className="match-champ-img" />
-                    : <div className="match-champ-placeholder">⚔</div>
-                  }
+                    {imgUrl
+                      ? <img src={imgUrl} alt={me.championName} className="match-champ-img" />
+                      : <div className="match-champ-placeholder">⚔</div>
+                    }
 
-                  <div className="match-info">
-                    <div className="match-champ-name">{me.championName}</div>
-                    <div className="match-meta">{mode} · {duration}</div>
-                  </div>
-
-                  <div className="match-kda">
-                    <div className="kda-nums">
-                      <span className="win-text">{k}</span>
-                      <span style={{ color: 'var(--text-dim)', margin: '0 3px' }}>/</span>
-                      <span className="loss-text">{d}</span>
-                      <span style={{ color: 'var(--text-dim)', margin: '0 3px' }}>/</span>
-                      <span style={{ color: 'var(--text-mid)' }}>{a}</span>
+                    <div className="match-info">
+                      <div className="match-champ-name">
+                        {me.championName}
+                        <MultiKillBadge me={me} />
+                      </div>
+                      <div className="match-meta">{mode} · {duration}</div>
                     </div>
-                    <div className="kda-ratio">{kdaRatio(k, d, a)} KDA</div>
+
+                    <div className="match-kda">
+                      <div className="kda-nums">
+                        <span className="win-text">{k}</span>
+                        <span style={{ color: 'var(--text-dim)', margin: '0 3px' }}>/</span>
+                        <span className="loss-text">{d}</span>
+                        <span style={{ color: 'var(--text-dim)', margin: '0 3px' }}>/</span>
+                        <span style={{ color: 'var(--text-mid)' }}>{a}</span>
+                      </div>
+                      <div className="kda-ratio">{kdaRatio(k, d, a)} KDA</div>
+                    </div>
+
+                    <div className="match-stats">
+                      <div className="match-cs">{cs} CS</div>
+                      <div className="match-time">{ago}</div>
+                    </div>
+
+                    <span className="match-expand-arrow">{isOpen ? '▲' : '▼'}</span>
                   </div>
 
-                  <div className="match-stats">
-                    <div className="match-cs">{cs} CS</div>
-                    <div className="match-time">{ago}</div>
-                  </div>
+                  {isOpen && (
+                    <MatchDetail match={match} summoner={summoner} ddragon={ddragon} />
+                  )}
                 </div>
               )
             })}

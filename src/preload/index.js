@@ -11,6 +11,8 @@ contextBridge.exposeInMainWorld('api', {
   getChallengeConfigs: () => ipcRenderer.invoke('api:challenge-configs'),
   getMatchIds: (puuid) => ipcRenderer.invoke('api:match-ids', puuid),
   getMatch: (id) => ipcRenderer.invoke('api:match', id),
+  getChampionMatchIds: (puuid, champId) => ipcRenderer.invoke('api:champion-match-ids', puuid, champId),
+  getChampionRotation: () => ipcRenderer.invoke('api:champion-rotation'),
   getDDragon: () => ipcRenderer.invoke('api:ddragon'),
   lcu: {
     status: () => ipcRenderer.invoke('lcu:status'),
