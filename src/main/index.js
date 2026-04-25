@@ -2,11 +2,46 @@ const { app, BrowserWindow, ipcMain, shell } = require('electron')
 const { join } = require('path')
 const https = require('https')
 const fs = require('fs')
+const { exec } = require('child_process')
 const Store = require('electron-store')
 
 const store = new Store()
 const matchCache = new Map()
 let overlayWin = null
+let gameWatchTimer = null
+
+function isLeagueGameRunning() {
+  return new Promise(resolve => {
+    exec('tasklist /fi "imagename eq League of Legends.exe" /fo csv /nh', (err, stdout) => {
+      resolve(!err && stdout.toLowerCase().includes('league of legends.exe'))
+    })
+  })
+}
+
+function startGameWatch() {
+  if (gameWatchTimer) return
+  gameWatchTimer = setInterval(async () => {
+    if (!overlayWin || overlayWin.isDestroyed()) {
+      clearInterval(gameWatchTimer)
+      gameWatchTimer = null
+      return
+    }
+    const running = await isLeagueGameRunning()
+    if (running) {
+      overlayWin.setAlwaysOnTop(true, 'screen-saver')
+      overlayWin.moveTop()
+    } else {
+      overlayWin.destroy()
+      overlayWin = null
+      clearInterval(gameWatchTimer)
+      gameWatchTimer = null
+    }
+  }, 2000)
+}
+
+function stopGameWatch() {
+  if (gameWatchTimer) { clearInterval(gameWatchTimer); gameWatchTimer = null }
+}
 
 const PLATFORM = {
   NA: 'na1', EUW: 'euw1', EUNE: 'eun1', KR: 'kr',
@@ -126,6 +161,7 @@ function createWindow() {
     minHeight: 640,
     frame: false,
     backgroundColor: '#050505',
+    icon: join(__dirname, '../../build/icon.ico'),
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
       contextIsolation: true,
@@ -335,6 +371,8 @@ app.whenReady().then(() => {
   ipcMain.handle('store:get-puuid', () => store.get('cachedPuuid', ''))
   ipcMain.handle('store:get-theme', () => store.get('theme', 'default'))
   ipcMain.handle('store:save-theme', (_, t) => { store.set('theme', t); return true })
+  ipcMain.handle('store:get-overlay-settings', () => store.get('overlaySettings', { showDeathPulse: true }))
+  ipcMain.handle('store:save-overlay-settings', (_, s) => { store.set('overlaySettings', s); return true })
   ipcMain.handle('shell:open-external', (_, url) => shell.openExternal(url))
 
   // ── Overlay window ────────────────────────────
@@ -365,11 +403,13 @@ app.whenReady().then(() => {
         store.set('overlayBounds', { x, y })
       }
     })
-    overlayWin.on('closed', () => { overlayWin = null })
+    overlayWin.on('closed', () => { overlayWin = null; stopGameWatch() })
+    startGameWatch()
     return true
   })
 
   ipcMain.handle('overlay:hide', () => {
+    stopGameWatch()
     if (overlayWin && !overlayWin.isDestroyed()) { overlayWin.destroy(); overlayWin = null }
     return true
   })

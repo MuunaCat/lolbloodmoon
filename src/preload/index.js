@@ -30,6 +30,8 @@ contextBridge.exposeInMainWorld('api', {
   saveFollowedChallenges: (ids) => ipcRenderer.invoke('store:save-followed', ids),
   getOverlayOpacity: () => ipcRenderer.invoke('store:get-opacity'),
   saveOverlayOpacity: (v) => ipcRenderer.invoke('store:save-opacity', v),
+  getOverlaySettings: () => ipcRenderer.invoke('store:get-overlay-settings'),
+  saveOverlaySettings: (s) => ipcRenderer.invoke('store:save-overlay-settings', s),
   getSrankOverrides: () => ipcRenderer.invoke('store:get-srank-overrides'),
   saveSrankOverrides: (data) => ipcRenderer.invoke('store:save-srank-overrides', data),
   getCachedPuuid: () => ipcRenderer.invoke('store:get-puuid'),

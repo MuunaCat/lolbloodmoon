@@ -8,26 +8,30 @@ const TIER_COLOR = {
 }
 
 const COLLAPSED = [64, 64]
-const EXPANDED  = [290, 460]
+const EXPANDED  = [290, 472]
 
 export default function OverlayApp() {
-  const [expanded, setExpanded]     = useState(false)
-  const [isDead, setIsDead]         = useState(false)
-  const [challenges, setChallenges] = useState([])
-  const [followed, setFollowed]     = useState([])
-  const [opacity, setOpacity]       = useState(0.93)
-  const [loading, setLoading]       = useState(true)
+  const [expanded, setExpanded]       = useState(false)
+  const [isDead, setIsDead]           = useState(false)
+  const [challenges, setChallenges]   = useState([])
+  const [followed, setFollowed]       = useState([])
+  const [opacity, setOpacity]         = useState(0.93)
+  const [deathPulse, setDeathPulse]   = useState(true)
+  const [showSettings, setShowSettings] = useState(false)
+  const [loading, setLoading]         = useState(true)
   const pollRef = useRef(null)
 
   useEffect(() => {
     async function init() {
-      const [puuid, followedIds, op] = await Promise.all([
+      const [puuid, followedIds, op, overlaySettings] = await Promise.all([
         window.api.getCachedPuuid(),
         window.api.getFollowedChallenges(),
-        window.api.getOverlayOpacity()
+        window.api.getOverlayOpacity(),
+        window.api.getOverlaySettings()
       ])
       setFollowed(followedIds)
       setOpacity(op)
+      setDeathPulse(overlaySettings?.showDeathPulse ?? true)
       if (puuid) {
         try {
           const [playerData, configs] = await Promise.all([
@@ -77,6 +81,7 @@ export default function OverlayApp() {
   const toggle = async () => {
     const next = !expanded
     setExpanded(next)
+    if (!next) setShowSettings(false)
     await window.api.resizeOverlay(...(next ? EXPANDED : COLLAPSED))
   }
 
@@ -86,18 +91,24 @@ export default function OverlayApp() {
     await window.api.saveOverlayOpacity(num)
   }
 
+  const handleDeathPulse = async (v) => {
+    setDeathPulse(v)
+    await window.api.saveOverlaySettings({ showDeathPulse: v })
+  }
+
   const pinned = challenges.filter(c => followed.includes(c.id))
+  const deadActive = isDead && deathPulse
 
   const btnStyle = {
     width: 52, height: 52, borderRadius: 10,
-    background: isDead ? 'rgba(180,30,30,0.9)' : 'rgba(10,10,10,0.92)',
-    border: `1.5px solid ${isDead ? 'rgba(230,60,60,0.7)' : 'rgba(200,155,60,0.55)'}`,
+    background: deadActive ? 'rgba(180,30,30,0.9)' : 'rgba(10,10,10,0.92)',
+    border: `1.5px solid ${deadActive ? 'rgba(230,60,60,0.7)' : 'rgba(200,155,60,0.55)'}`,
     display: 'flex', alignItems: 'center', justifyContent: 'center',
     cursor: 'pointer', fontSize: 20,
-    boxShadow: isDead ? '0 0 14px rgba(220,50,50,0.5)' : '0 0 10px rgba(0,0,0,0.6)',
+    boxShadow: deadActive ? '0 0 14px rgba(220,50,50,0.5)' : '0 0 10px rgba(0,0,0,0.6)',
     transition: 'all 0.18s',
-    WebkitAppRegion: 'no-drag', userSelect: 'none',
-    animation: isDead ? 'ovPulse 1s ease-in-out infinite' : 'none',
+    userSelect: 'none',
+    animation: deadActive ? 'ovPulse 1s ease-in-out infinite' : 'none',
   }
 
   if (!expanded) {
@@ -105,7 +116,7 @@ export default function OverlayApp() {
       <div style={{ width: '100vw', height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'transparent', WebkitAppRegion: 'drag' }}>
         <style>{`@keyframes ovPulse { 0%,100%{box-shadow:0 0 8px rgba(220,50,50,0.4)} 50%{box-shadow:0 0 20px rgba(220,50,50,0.8)} }`}</style>
         <div style={btnStyle} onClick={toggle} title="Open challenge tracker">
-          {isDead ? '☠' : '★'}
+          {deadActive ? '☠' : '★'}
         </div>
       </div>
     )
@@ -117,54 +128,99 @@ export default function OverlayApp() {
 
         {/* Header — drag zone */}
         <div style={{ padding: '7px 9px', background: 'rgba(200,155,60,0.07)', borderBottom: '1px solid rgba(200,155,60,0.13)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', WebkitAppRegion: 'drag', cursor: 'move', flexShrink: 0 }}>
-          <span style={{ fontSize: 10, fontWeight: 700, color: '#C89B3C', letterSpacing: 1.2, textTransform: 'uppercase' }}>
-            {isDead ? '☠ Respawning' : '★ Challenges'}
+          <span style={{ fontSize: 10, fontWeight: 700, color: '#C89B3C', letterSpacing: 1.2, textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: 5 }}>
+            <span style={{ color: 'rgba(200,155,60,0.4)', letterSpacing: 2, fontSize: 9 }}>⠿</span>
+            {deadActive ? '☠ Respawning' : showSettings ? '⚙ Settings' : '★ Challenges'}
           </span>
           <div style={{ display: 'flex', gap: 4, WebkitAppRegion: 'no-drag' }}>
+            <Btn
+              onClick={() => setShowSettings(s => !s)}
+              color={showSettings ? '#C89B3C' : '#888'}
+              bg={showSettings ? 'rgba(200,155,60,0.18)' : 'rgba(255,255,255,0.07)'}
+              title="Settings"
+            >⚙</Btn>
             <Btn onClick={toggle} color="#888" title="Collapse">−</Btn>
             <Btn onClick={() => window.api.hideOverlay()} color="#E44D4D" bg="rgba(180,40,40,0.3)" title="Close">×</Btn>
           </div>
         </div>
 
-        {/* Challenge list */}
-        <div style={{ flex: 1, overflowY: 'auto', padding: '6px 8px' }}>
-          {loading && <div style={{ textAlign: 'center', padding: 24, color: '#777', fontSize: 11 }}>Loading...</div>}
-          {!loading && pinned.length === 0 && (
-            <div style={{ textAlign: 'center', padding: 24, color: '#666', fontSize: 11, lineHeight: 1.7 }}>
-              No pinned challenges.<br />Pin with ★ in the Challenges tab.
+        {showSettings ? (
+          /* Settings panel */
+          <div style={{ flex: 1, overflowY: 'auto', padding: '12px 10px', display: 'flex', flexDirection: 'column', gap: 16 }}>
+            {/* Opacity */}
+            <div>
+              <div style={{ fontSize: 9, color: '#888', textTransform: 'uppercase', letterSpacing: 1.5, marginBottom: 10 }}>Opacity</div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <input
+                  type="range" min="0.2" max="1" step="0.05" value={opacity}
+                  onChange={e => handleOpacity(e.target.value)}
+                  style={{ flex: 1, accentColor: '#C89B3C', height: 3 }}
+                />
+                <span style={{ fontSize: 11, color: '#aaa', width: 32, textAlign: 'right', flexShrink: 0 }}>
+                  {Math.round(opacity * 100)}%
+                </span>
+              </div>
             </div>
-          )}
-          {!loading && pinned.map(c => {
-            const color = TIER_COLOR[c.level] || '#888'
-            const barColor = c.isComplete ? '#3DD68C' : isDead ? '#C84040' : color
-            const rowBg    = c.isComplete ? 'rgba(61,214,140,0.07)' : isDead ? 'rgba(200,50,50,0.09)' : 'rgba(255,255,255,0.03)'
-            const border   = c.isComplete ? 'rgba(61,214,140,0.18)' : isDead ? 'rgba(200,50,50,0.25)' : 'rgba(255,255,255,0.07)'
-            return (
-              <div key={c.id} style={{ marginBottom: 5, padding: '5px 7px', borderRadius: 6, background: rowBg, border: `1px solid ${border}` }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 3 }}>
-                  <span style={{ fontSize: 11, color: c.isComplete ? '#3DD68C' : isDead ? '#E77' : '#E8DCC8', fontWeight: 500, flex: 1, marginRight: 4, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                    {c.name}
-                  </span>
-                  <span style={{ fontSize: 9, color, fontWeight: 700, flexShrink: 0 }}>{c.level !== 'NONE' ? c.level : ''}</span>
-                </div>
-                <div style={{ height: 3, background: 'rgba(255,255,255,0.12)', borderRadius: 2 }}>
-                  <div style={{ height: '100%', width: `${c.pct}%`, background: barColor, borderRadius: 2, transition: 'width 0.3s' }} />
-                </div>
-                <div style={{ fontSize: 9, color: '#888', marginTop: 2 }}>
-                  {c.value.toLocaleString()}{c.nextVal ? ` / ${c.nextVal.toLocaleString()} → ${c.next[0]}` : ' · Complete'}
+
+            {/* Death pulse */}
+            <div>
+              <div style={{ fontSize: 9, color: '#888', textTransform: 'uppercase', letterSpacing: 1.5, marginBottom: 10 }}>Death Pulse</div>
+              <div
+                onClick={() => handleDeathPulse(!deathPulse)}
+                style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer', padding: '7px 10px', borderRadius: 6, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}
+              >
+                <span style={{ fontSize: 11, color: '#ccc' }}>Pulse when dead</span>
+                <div style={{
+                  width: 32, height: 17, borderRadius: 9,
+                  background: deathPulse ? 'rgba(200,155,60,0.7)' : 'rgba(255,255,255,0.1)',
+                  position: 'relative', transition: 'background 0.2s', flexShrink: 0
+                }}>
+                  <div style={{
+                    position: 'absolute', top: 2, left: deathPulse ? 16 : 2, width: 13, height: 13,
+                    borderRadius: '50%', background: deathPulse ? '#C89B3C' : '#555',
+                    transition: 'left 0.2s, background 0.2s'
+                  }} />
                 </div>
               </div>
-            )
-          })}
-        </div>
-
-        {/* Opacity slider */}
-        <div style={{ padding: '5px 9px', borderTop: '1px solid rgba(255,255,255,0.05)', flexShrink: 0, WebkitAppRegion: 'no-drag' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
-            <span style={{ fontSize: 9, color: '#777', width: 44, flexShrink: 0 }}>Opacity</span>
-            <input type="range" min="0.2" max="1" step="0.05" value={opacity} onChange={e => handleOpacity(e.target.value)} style={{ flex: 1, accentColor: '#C89B3C', height: 3 }} />
-            <span style={{ fontSize: 9, color: '#777', width: 28, textAlign: 'right' }}>{Math.round(opacity * 100)}%</span>
+            </div>
           </div>
+        ) : (
+          /* Challenge list */
+          <div style={{ flex: 1, overflowY: 'auto', padding: '6px 8px' }}>
+            {loading && <div style={{ textAlign: 'center', padding: 24, color: '#777', fontSize: 11 }}>Loading...</div>}
+            {!loading && pinned.length === 0 && (
+              <div style={{ textAlign: 'center', padding: 24, color: '#666', fontSize: 11, lineHeight: 1.7 }}>
+                No pinned challenges.<br />Pin with ★ in the Challenges tab.
+              </div>
+            )}
+            {!loading && pinned.map(c => {
+              const color = TIER_COLOR[c.level] || '#888'
+              const barColor = c.isComplete ? '#3DD68C' : deadActive ? '#C84040' : color
+              const rowBg    = c.isComplete ? 'rgba(61,214,140,0.07)' : deadActive ? 'rgba(200,50,50,0.09)' : 'rgba(255,255,255,0.03)'
+              const border   = c.isComplete ? 'rgba(61,214,140,0.18)' : deadActive ? 'rgba(200,50,50,0.25)' : 'rgba(255,255,255,0.07)'
+              return (
+                <div key={c.id} style={{ marginBottom: 5, padding: '5px 7px', borderRadius: 6, background: rowBg, border: `1px solid ${border}` }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 3 }}>
+                    <span style={{ fontSize: 11, color: c.isComplete ? '#3DD68C' : deadActive ? '#E77' : '#E8DCC8', fontWeight: 500, flex: 1, marginRight: 4, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {c.name}
+                    </span>
+                    <span style={{ fontSize: 9, color, fontWeight: 700, flexShrink: 0 }}>{c.level !== 'NONE' ? c.level : ''}</span>
+                  </div>
+                  <div style={{ height: 3, background: 'rgba(255,255,255,0.12)', borderRadius: 2 }}>
+                    <div style={{ height: '100%', width: `${c.pct}%`, background: barColor, borderRadius: 2, transition: 'width 0.3s' }} />
+                  </div>
+                  <div style={{ fontSize: 9, color: '#888', marginTop: 2 }}>
+                    {c.value.toLocaleString()}{c.nextVal ? ` / ${c.nextVal.toLocaleString()} → ${c.next[0]}` : ' · Complete'}
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        )}
+
+        {/* Footer drag strip */}
+        <div style={{ height: 10, WebkitAppRegion: 'drag', cursor: 'move', flexShrink: 0, background: 'rgba(200,155,60,0.03)', borderTop: '1px solid rgba(200,155,60,0.07)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <span style={{ color: 'rgba(200,155,60,0.25)', fontSize: 8, letterSpacing: 3 }}>⠿</span>
         </div>
       </div>
     </div>

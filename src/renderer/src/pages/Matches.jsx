@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, memo } from 'react'
 
 function timeAgo(ms) {
   const diff = Date.now() - ms
@@ -36,7 +36,7 @@ const MODE_LABEL = {
 
 const QUEUE_FILTER_MODES = ['All', 'Ranked', 'Normal', 'ARAM', 'Other']
 
-function ItemIcon({ itemId, version }) {
+const ItemIcon = memo(function ItemIcon({ itemId, version }) {
   if (!itemId) return <div className="match-item-placeholder" />
   return (
     <img
@@ -46,7 +46,7 @@ function ItemIcon({ itemId, version }) {
       onError={e => { e.target.style.display = 'none' }}
     />
   )
-}
+})
 
 function MultiKillBadge({ me }) {
   if (me.pentaKills  > 0) return <span className="multikill-badge penta">PENTA</span>
@@ -56,7 +56,7 @@ function MultiKillBadge({ me }) {
   return null
 }
 
-function MatchDetail({ match, summoner, ddragon }) {
+const MatchDetail = memo(function MatchDetail({ match, summoner, ddragon }) {
   const me = match.info.participants.find(p => p.puuid === summoner.puuid)
   if (!me) return null
 
@@ -66,21 +66,56 @@ function MatchDetail({ match, summoner, ddragon }) {
 
   const items = [me.item0, me.item1, me.item2, me.item3, me.item4, me.item5, me.item6]
 
+  const cs = (me.totalMinionsKilled || 0) + (me.neutralMinionsKilled || 0)
+  const durationMin = match.info.gameDuration / 60
+  const csPerMin = durationMin > 0 ? (cs / durationMin).toFixed(1) : '0'
+
+  const myTeam = match.info.teams?.find(t => t.teamId === me.teamId)
+  const teamKills = myTeam?.objectives?.champion?.kills || 0
+  const kp = teamKills > 0 ? Math.round(((me.kills + me.assists) / teamKills) * 100) : 0
+
+  const firstBlood = me.firstBloodKill ? 'Kill' : me.firstBloodAssist ? 'Assist' : null
+
+  const stats = [
+    { label: 'Damage',   value: (me.totalDamageDealtToChampions || 0).toLocaleString(), color: '#E44D4D' },
+    { label: 'Taken',    value: (me.totalDamageTaken || 0).toLocaleString() },
+    { label: 'Gold',     value: (me.goldEarned || 0).toLocaleString(), color: 'var(--gold)' },
+    { label: 'Vision',   value: me.visionScore ?? 0 },
+    { label: 'CS/min',   value: csPerMin },
+    { label: 'KP',       value: `${kp}%` },
+    { label: 'Wards',    value: `${me.wardsPlaced ?? 0} / ${me.wardsKilled ?? 0}` },
+    { label: 'Healing',  value: (me.totalHeal || 0).toLocaleString() },
+    ...(me.turretKills > 0 || me.turretTakedowns > 0
+      ? [{ label: 'Turrets', value: me.turretKills || me.turretTakedowns || 0 }] : []),
+    ...(firstBlood ? [{ label: 'First Blood', value: firstBlood, color: 'var(--win)' }] : []),
+    ...(me.objectivesStolen > 0 ? [{ label: 'Stolen', value: me.objectivesStolen, color: 'var(--gold)' }] : []),
+  ]
+
   return (
     <div className="match-detail">
       {/* My items + stats */}
       <div className="match-detail-my-row">
-        <div className="match-detail-section-label">Items</div>
-        <div className="match-item-row">
-          {items.map((id, i) => <ItemIcon key={i} itemId={id || null} version={ver} />)}
-        </div>
-        <div className="match-detail-stats-row">
-          <span className="match-detail-stat"><span style={{ color: 'var(--gold)' }}>{(me.goldEarned || 0).toLocaleString()}</span> gold</span>
-          <span className="match-detail-stat"><span style={{ color: 'var(--text-mid)' }}>{me.visionScore ?? 0}</span> vision</span>
-          <span className="match-detail-stat" title="Damage to champions"><span style={{ color: '#E44D4D' }}>{(me.totalDamageDealtToChampions || 0).toLocaleString()}</span> dmg</span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
+          <div>
+            <div className="match-detail-section-label">Items</div>
+            <div className="match-item-row">
+              {items.map((id, i) => <ItemIcon key={i} itemId={id || null} version={ver} />)}
+            </div>
+          </div>
           {(me.teamPosition || me.individualPosition) && (
-            <span className="match-detail-stat"><span style={{ color: 'var(--text-dim)' }}>{POSITION_LABEL[me.teamPosition || me.individualPosition] || (me.teamPosition || me.individualPosition)}</span></span>
+            <span style={{ fontSize: 11, color: 'var(--text-mid)', alignSelf: 'flex-end', marginBottom: 2 }}>
+              {POSITION_LABEL[me.teamPosition || me.individualPosition] || (me.teamPosition || me.individualPosition)}
+            </span>
           )}
+        </div>
+
+        <div className="match-stats-grid">
+          {stats.map(s => (
+            <div key={s.label} className="match-stat-item">
+              <span className="match-stat-label">{s.label}</span>
+              <span className="match-stat-value" style={s.color ? { color: s.color } : {}}>{s.value}</span>
+            </div>
+          ))}
         </div>
       </div>
 
@@ -93,7 +128,7 @@ function MatchDetail({ match, summoner, ddragon }) {
             </div>
             {team.map((p, i) => {
               const isMe = p.puuid === summoner.puuid
-              const champ = ddragon ? Object.values(ddragon.champions || {}).find(c => c.name === p.championName) : null
+              const champ = ddragon?.champions?.[p.championName] || null
               const img = champ && ver ? `https://ddragon.leagueoflegends.com/cdn/${ver}/img/champion/${champ.image.full}` : null
               return (
                 <div key={i} className={`match-detail-player${isMe ? ' me' : ''}`}>
@@ -110,9 +145,9 @@ function MatchDetail({ match, summoner, ddragon }) {
       </div>
     </div>
   )
-}
+})
 
-export default function Matches({ summoner, ddragon, appError, matchRefreshKey, onManualRefresh }) {
+export default function Matches({ summoner, ddragon, appError, matchRefreshKey, onManualRefresh, initialQueueFilter, onInitQueueFilterConsumed }) {
   const [matchIds, setMatchIds]   = useState([])
   const [matches, setMatches]     = useState([])
   const [loading, setLoading]     = useState(false)
@@ -124,6 +159,13 @@ export default function Matches({ summoner, ddragon, appError, matchRefreshKey, 
   const [expanded, setExpanded]   = useState(null)
   const [queueFilter, setQueueFilter] = useState('All')
   const [resultFilter, setResultFilter] = useState('All')
+
+  useEffect(() => {
+    if (initialQueueFilter && initialQueueFilter !== 'All') {
+      setQueueFilter(initialQueueFilter)
+      onInitQueueFilterConsumed?.()
+    }
+  }, [initialQueueFilter])
 
   const fetchBatchProgressive = async (ids, onEach, onRestricted) => {
     const pending = ids.map(id =>
@@ -273,7 +315,7 @@ export default function Matches({ summoner, ddragon, appError, matchRefreshKey, 
               const me = match.info.participants.find(p => p.puuid === summoner.puuid)
               if (!me) return null
 
-              const champ = Object.values(ddragon?.champions || {}).find(c => c.name === me.championName)
+              const champ = ddragon?.champions?.[me.championName] || null
               const imgUrl = champ && ddragon
                 ? `https://ddragon.leagueoflegends.com/cdn/${ddragon.version}/img/champion/${champ.image.full}`
                 : null
@@ -302,7 +344,7 @@ export default function Matches({ summoner, ddragon, appError, matchRefreshKey, 
 
                     <div className="match-info">
                       <div className="match-champ-name">
-                        {me.championName}
+                        {champ?.name || me.championName}
                         <MultiKillBadge me={me} />
                       </div>
                       <div className="match-meta">{mode} · {duration}</div>
@@ -320,7 +362,10 @@ export default function Matches({ summoner, ddragon, appError, matchRefreshKey, 
                     </div>
 
                     <div className="match-stats">
-                      <div className="match-cs">{cs} CS</div>
+                      <div className="match-stat-pills">
+                        <span className="match-pill"><span className="match-pill-label">CS</span>{cs}</span>
+                        <span className="match-pill" style={{ color: '#E44D4D' }}><span className="match-pill-label">DMG</span>{Math.round((me.totalDamageDealtToChampions || 0) / 1000)}k</span>
+                      </div>
                       <div className="match-time">{ago}</div>
                     </div>
 

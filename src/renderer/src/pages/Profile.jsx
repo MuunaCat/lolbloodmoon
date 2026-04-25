@@ -12,12 +12,14 @@ const OPGG_REGION = {
   BR: 'br', JP: 'jp', LAN: 'lan', LAS: 'las', OCE: 'oce', RU: 'ru', TR: 'tr'
 }
 
-export default function Profile({ summoner, ddragon, appError, onRefresh, onChampionNavigate, region }) {
-  const [ranked, setRanked]        = useState(null)
-  const [loading, setLoading]      = useState(false)
-  const [error, setError]          = useState(null)
-  const [rotation, setRotation]    = useState(null)
-  const [recentMatches, setRecent] = useState(null)
+export default function Profile({ summoner, ddragon, appError, onRefresh, onChampionNavigate, onNavigateMatches, region }) {
+  const [ranked, setRanked]               = useState(null)
+  const [loading, setLoading]             = useState(false)
+  const [error, setError]                 = useState(null)
+  const [rotation, setRotation]           = useState(null)
+  const [recentMatches, setRecent]        = useState(null)
+  const [equippedTitle, setEquippedTitle] = useState(null)
+  const [challengeLevel, setChallengeLevel] = useState(null)
 
   useEffect(() => {
     if (!summoner) return
@@ -31,6 +33,31 @@ export default function Profile({ summoner, ddragon, appError, onRefresh, onCham
   useEffect(() => {
     window.api.getChampionRotation().then(setRotation).catch(() => {})
   }, [])
+
+  useEffect(() => {
+    if (!summoner?.puuid) return
+    Promise.all([
+      window.api.getChallenges(summoner.puuid).catch(() => null),
+      window.api.getChallengeConfigs().catch(() => null)
+    ]).then(([pd, cfgs]) => {
+      if (!pd) return
+      setChallengeLevel(pd.totalPoints?.level || null)
+      const titleId = pd.preferences?.title
+      if (!titleId || !cfgs) return
+      const cfg = cfgs.find(c => c.id === titleId)
+      if (!cfg) return
+      const pc = pd.challenges?.find(c => c.challengeId === titleId)
+      const lvl = pc?.level
+      if (!lvl) return
+      const rewards = cfg.thresholds?.[lvl]?.rewards
+      if (!rewards) return
+      const titleReward = rewards.find(r => r.type === 'TITLE')
+      if (titleReward) {
+        const locale = cfg.localizedNames?.en_US || Object.values(cfg.localizedNames || {})[0] || {}
+        setEquippedTitle({ text: titleReward.value, source: locale.name, level: lvl })
+      }
+    })
+  }, [summoner?.puuid])
 
   useEffect(() => {
     if (!summoner?.puuid) return
@@ -121,7 +148,18 @@ export default function Profile({ summoner, ddragon, appError, onRefresh, onCham
               title="View on OP.GG"
             >OP.GG</button>
           </div>
-          <div className="profile-region">Summoner · Level {summoner.summonerLevel}</div>
+          {equippedTitle && (
+            <div className="profile-equipped-title">
+              <span className="profile-title-text">"{equippedTitle.text}"</span>
+              <span className="profile-title-source"> · {equippedTitle.source} · {equippedTitle.level}</span>
+            </div>
+          )}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 4 }}>
+            <div className="profile-region">Summoner · Level {summoner.summonerLevel}</div>
+            {challengeLevel && challengeLevel !== 'NONE' && (
+              <span className={`profile-challenge-badge tier-${challengeLevel}`}>{challengeLevel}</span>
+            )}
+          </div>
         </div>
         {streak && streak.count >= 2 && (
           <div className="profile-streak" style={{ color: streak.win ? 'var(--win)' : 'var(--loss)' }}>
@@ -149,8 +187,8 @@ export default function Profile({ summoner, ddragon, appError, onRefresh, onCham
       {error && !loading && <div className="error-box">⚠ {error}</div>}
       {!loading && !error && (
         <div className="ranked-grid">
-          <RankCard queue={soloQ} label="Solo / Duo" />
-          <RankCard queue={flexQ}  label="Flex 5v5"  />
+          <RankCard queue={soloQ} label="Solo / Duo" onNavigate={onNavigateMatches ? () => onNavigateMatches('Ranked') : null} />
+          <RankCard queue={flexQ}  label="Flex 5v5"  onNavigate={onNavigateMatches ? () => onNavigateMatches('Ranked') : null} />
         </div>
       )}
 
@@ -181,11 +219,11 @@ export default function Profile({ summoner, ddragon, appError, onRefresh, onCham
   )
 }
 
-function RankCard({ queue, label }) {
+function RankCard({ queue, label, onNavigate }) {
   const color = queue ? (TIER_COLOR[queue.tier] || '#888') : '#333'
 
   if (!queue) return (
-    <div className="card rank-card" style={{ '--accent-color': color }}>
+    <div className="card rank-card" style={{ '--accent-color': color, cursor: onNavigate ? 'pointer' : 'default' }} onClick={onNavigate}>
       <div className="rank-queue-label">{label}</div>
       <div className="rank-unranked">Unranked</div>
     </div>
@@ -198,7 +236,12 @@ function RankCard({ queue, label }) {
   const tierName = tier.charAt(0) + tier.slice(1).toLowerCase()
 
   return (
-    <div className="card rank-card" style={{ '--accent-color': color, borderColor: `${color}30` }}>
+    <div
+      className="card rank-card"
+      style={{ '--accent-color': color, borderColor: `${color}30`, cursor: onNavigate ? 'pointer' : 'default' }}
+      onClick={onNavigate}
+      title={onNavigate ? 'View ranked matches' : undefined}
+    >
       <div className="rank-queue-label">{label}</div>
       <div className={`rank-tier-text tier-${tier}`}>
         {tierName}<span className="rank-division"> {rank}</span>

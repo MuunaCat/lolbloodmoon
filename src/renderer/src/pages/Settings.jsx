@@ -3,8 +3,10 @@ import { useState, useEffect } from 'react'
 const REGIONS = ['NA', 'EUW', 'EUNE', 'KR', 'BR', 'JP', 'LAN', 'LAS', 'OCE', 'RU', 'TR']
 
 const THEMES = [
-  { id: 'default',   label: 'Default',     desc: 'Classic dark gold' },
-  { id: 'bloodmoon', label: 'Blood Moon',  desc: 'Deep crimson & ember' }
+  { id: 'default',   label: 'Default',    desc: 'Classic dark gold' },
+  { id: 'bloodmoon', label: 'Blood Moon', desc: 'Deep crimson & ember' },
+  { id: 'cosmic',    label: 'Cosmic',     desc: 'Deep space blue & nebula' },
+  { id: 'void',      label: 'The Void',   desc: 'Dark purple void' },
 ]
 
 export default function Settings({ onRefresh, onSettingsSaved, theme, onThemeChange }) {

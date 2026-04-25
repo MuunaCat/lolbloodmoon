@@ -2,6 +2,8 @@ import { useState, useEffect, useMemo } from 'react'
 
 const TIER_ORDER = ['NONE', 'IRON', 'BRONZE', 'SILVER', 'GOLD', 'PLATINUM', 'EMERALD', 'DIAMOND', 'MASTER', 'GRANDMASTER', 'CHALLENGER']
 
+const stripHtml = (s) => s ? s.replace(/<[^>]+>/g, '').trim() : ''
+
 const TIER_COLOR = {
   NONE: '#444', IRON: '#7D6E5E', BRONZE: '#A0522D', SILVER: '#9EA9B0',
   GOLD: '#C89B3C', PLATINUM: '#4CAF6A', EMERALD: '#1FA657',
@@ -13,6 +15,15 @@ const CATEGORY_LABELS = {
   TEAMWORK: 'Teamwork', VETERANCY: 'Veterancy',
   IMAGINATION: 'Imagination', EXPERTISE: 'Expertise', COLLECTION: 'Collection'
 }
+
+// Challenge IDs follow a prefix pattern: 1xxxxx=IMAGINATION, 2xxxxx=COLLECTION,
+// 3xxxxx=TEAMWORK, 4xxxxx=EXPERTISE, 5xxxxx=VETERANCY
+const CHALLENGE_CATEGORY = (id) => {
+  const p = Math.floor(id / 100000)
+  return { 1: 'IMAGINATION', 2: 'COLLECTION', 3: 'TEAMWORK', 4: 'EXPERTISE', 5: 'VETERANCY' }[p] || null
+}
+
+const TIER_FILTERS = ['All', 'NONE', 'IRON', 'BRONZE', 'SILVER', 'GOLD', 'PLATINUM', 'EMERALD', 'DIAMOND', 'MASTER', 'GRANDMASTER', 'CHALLENGER']
 
 const TRACKER_DEFS = [
   {
@@ -57,14 +68,16 @@ export default function Challenges({ summoner, ddragon, appError }) {
   const [srankOverrides, setSrankOverrides] = useState({})
 
   // Challenge state
-  const [playerData, setPlayerData] = useState(null)
-  const [configs, setConfigs]       = useState(null)
-  const [loading, setLoading]       = useState(false)
-  const [error, setError]           = useState(null)
-  const [search, setSearch]         = useState('')
-  const [expanded, setExpanded]     = useState(null)
-  const [showAll, setShowAll]       = useState(false)
-  const [followed, setFollowed]     = useState([])
+  const [playerData, setPlayerData]     = useState(null)
+  const [configs, setConfigs]           = useState(null)
+  const [loading, setLoading]           = useState(false)
+  const [error, setError]               = useState(null)
+  const [search, setSearch]             = useState('')
+  const [expanded, setExpanded]         = useState(null)
+  const [showAll, setShowAll]           = useState(false)
+  const [followed, setFollowed]         = useState([])
+  const [categoryFilter, setCategoryFilter] = useState(null)
+  const [tierFilter, setTierFilter]     = useState('All')
 
   useEffect(() => {
     if (!summoner) return
@@ -177,9 +190,9 @@ export default function Challenges({ summoner, ddragon, appError }) {
         const p = playerMap[c.id] || null
         return {
           id: c.id,
-          name: locale.name || `Challenge ${c.id}`,
-          description: locale.description || locale.shortDescription || '',
-          shortDescription: locale.shortDescription || '',
+          name: stripHtml(locale.name) || `Challenge ${c.id}`,
+          description: stripHtml(locale.description || locale.shortDescription || ''),
+          shortDescription: stripHtml(locale.shortDescription || ''),
           thresholds: c.thresholds || {},
           tracking: c.tracking,
           level: p?.level || 'NONE',
@@ -199,12 +212,14 @@ export default function Challenges({ summoner, ddragon, appError }) {
 
   const filtered = useMemo(() => {
     let list = showAll ? merged : merged.filter(c => c.hasProgress)
+    if (categoryFilter) list = list.filter(c => CHALLENGE_CATEGORY(c.id) === categoryFilter)
+    if (tierFilter && tierFilter !== 'All') list = list.filter(c => c.level === tierFilter)
     if (search) {
       const q = search.toLowerCase()
       list = list.filter(c => c.name.toLowerCase().includes(q) || c.description.toLowerCase().includes(q))
     }
     return list
-  }, [merged, showAll, search])
+  }, [merged, showAll, search, categoryFilter, tierFilter])
 
   const progressCount = merged.filter(c => c.hasProgress).length
   const totalLevel    = playerData?.totalPoints?.level || 'NONE'
@@ -353,8 +368,10 @@ export default function Challenges({ summoner, ddragon, appError }) {
               {totalPts && (
                 <>
                   <div className="ch-total-pts">{totalPts.current?.toLocaleString()} / {totalPts.max?.toLocaleString() ?? '—'} pts</div>
-                  {totalPts.percentile != null && (
-                    <div className="ch-percentile">Top {(totalPts.percentile * 100).toFixed(1)}% of players</div>
+                  {totalPts.percentile != null && totalPts.percentile > 0 && (
+                    <div className="ch-percentile" style={{ fontSize: 13, color: totalColor, fontWeight: 600, marginTop: 4 }}>
+                      Top {(totalPts.percentile * 100).toFixed(1)}% of players
+                    </div>
                   )}
                 </>
               )}
@@ -363,8 +380,14 @@ export default function Challenges({ summoner, ddragon, appError }) {
               {categories.map(([key, cat]) => {
                 const color = TIER_COLOR[cat.level] || '#888'
                 const pct = tierPct(cat.current, cat.max)
+                const isActive = categoryFilter === key
                 return (
-                  <div key={key} className="ch-cat-mini">
+                  <div
+                    key={key}
+                    className={`ch-cat-mini${isActive ? ' active' : ''}`}
+                    onClick={() => setCategoryFilter(isActive ? null : key)}
+                    title={isActive ? 'Clear filter' : `Filter by ${CATEGORY_LABELS[key] || key}`}
+                  >
                     <div className="ch-cat-mini-name">{CATEGORY_LABELS[key] || key}</div>
                     <div className="ch-cat-mini-level" style={{ color }}>{cat.level}</div>
                     <div className="ch-cat-bar-track">
@@ -392,8 +415,35 @@ export default function Challenges({ summoner, ddragon, appError }) {
               <button className={`filter-btn${showAll ? ' active' : ''}`} onClick={() => setShowAll(true)}>
                 All ({merged.length})
               </button>
+              {categoryFilter && (
+                <button
+                  className="filter-btn active"
+                  style={{ color: 'var(--gold)', gap: 4 }}
+                  onClick={() => setCategoryFilter(null)}
+                >
+                  {CATEGORY_LABELS[categoryFilter] || categoryFilter} ✕
+                </button>
+              )}
             </div>
             <div className="ch-count">{filtered.length} shown</div>
+          </div>
+
+          {/* Tier filter bar */}
+          <div className="ch-tier-filter-bar">
+            {TIER_FILTERS.map(tier => {
+              const isActive = tierFilter === tier
+              const color = tier !== 'All' ? TIER_COLOR[tier] : null
+              return (
+                <button
+                  key={tier}
+                  className={`ch-tier-filter-btn${isActive ? ' active' : ''}`}
+                  style={isActive && color ? { color, borderColor: `${color}66`, background: `${color}15` } : {}}
+                  onClick={() => setTierFilter(tier)}
+                >
+                  {tier}
+                </button>
+              )
+            })}
           </div>
 
           {/* Challenge list */}
@@ -424,13 +474,16 @@ export default function Challenges({ summoner, ddragon, appError }) {
                       {c.level !== 'NONE' && (
                         <span className="ch-tier-badge" style={{ color, borderColor: `${color}44` }}>{c.level}</span>
                       )}
+                      {c.percentile != null && c.percentile > 0 && (
+                        <span className="ch-percentile-badge">Top {(c.percentile * 100).toFixed(1)}%</span>
+                      )}
                       {c.value > 0 && <span className="ch-value">{c.value.toLocaleString()}</span>}
                       <button
                         className={`ch-pin-btn${followed.includes(c.id) ? ' pinned' : ''}`}
                         onClick={e => { e.stopPropagation(); toggleFollow(c.id) }}
                         title={followed.includes(c.id) ? 'Unpin from overlay' : 'Pin to overlay'}
                       >
-                        {followed.includes(c.id) ? '★' : '☆'}
+                        {followed.includes(c.id) ? '★ Pinned' : '☆ Pin'}
                       </button>
                       <span className="ch-chevron">{isOpen ? '▲' : '▼'}</span>
                     </div>

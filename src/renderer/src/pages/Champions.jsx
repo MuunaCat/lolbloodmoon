@@ -219,7 +219,8 @@ function ChampionModal({ masteryEntry, champ, ddragon, summoner, rank, onClose, 
         <button className="champ-modal-close" onClick={onClose}>✕</button>
 
         <div className="champ-modal-header">
-          {imgUrl && <img src={imgUrl} alt={champ?.name} className="champ-modal-img" draggable={false} />}
+          {imgUrl && <img src={imgUrl} alt={champ?.name} className="champ-modal-img" draggable={false}
+            onError={e => { e.currentTarget.onerror = null; e.currentTarget.style.display = 'none' }} />}
           <div className="champ-modal-title-block">
             <div className="champ-modal-name">{champ?.name ?? `Champion ${masteryEntry.championId}`}</div>
             {champ?.title && <div className="champ-modal-subtitle">{champ.title}</div>}
@@ -312,6 +313,8 @@ function ChampionModal({ masteryEntry, champ, ddragon, summoner, rank, onClose, 
   )
 }
 
+const CHAMP_CLASSES = ['Fighter', 'Tank', 'Mage', 'Assassin', 'Marksman', 'Support']
+
 export default function Champions({ summoner, ddragon, appError, initialSearch, onInitSearchConsumed }) {
   const [mastery, setMastery]           = useState(null)
   const [loading, setLoading]           = useState(false)
@@ -320,11 +323,17 @@ export default function Champions({ summoner, ddragon, appError, initialSearch, 
   const [selected, setSelected]         = useState(null)
   const [challengeMap, setChallengeMap] = useState({})
   const [configMap, setConfigMap]       = useState({})
+  const [classFilter, setClassFilter]   = useState(null)
+  const [unplayedOnly, setUnplayedOnly] = useState(false)
+  const [pendingOpen, setPendingOpen]   = useState('')
 
-  // Consume initial search once
+  // Consume initial search and queue modal open
   useEffect(() => {
     if (initialSearch) {
       setSearch(initialSearch)
+      setPendingOpen(initialSearch)
+      setClassFilter(null)
+      setUnplayedOnly(false)
       onInitSearchConsumed?.()
     }
   }, [initialSearch])
@@ -389,11 +398,31 @@ export default function Champions({ summoner, ddragon, appError, initialSearch, 
     return result
   }, [ddragon, masteryById])
 
+  // Auto-open modal when navigating from Profile (waits for allChampions to be ready)
+  useEffect(() => {
+    if (!pendingOpen || allChampions.length === 0) return
+    const match = allChampions.find(({ champ }) => champ.name === pendingOpen)
+    if (match) {
+      const champId = parseInt(match.champ.key)
+      setSelected({
+        entry: match.m || { championId: champId, championLevel: 0, championPoints: 0 },
+        champ: match.champ,
+        rank: match.m ? allChampions.findIndex(c => c.champ.key === match.champ.key) : -1
+      })
+    }
+    setPendingOpen('')
+  }, [pendingOpen, allChampions])
+
   const filtered = useMemo(() => {
-    if (!search) return allChampions
-    const q = normalizeSearch(search)
-    return allChampions.filter(({ champ }) => normalizeSearch(champ.name).includes(q))
-  }, [allChampions, search])
+    let list = allChampions
+    if (unplayedOnly) list = list.filter(c => !c.played)
+    if (classFilter)  list = list.filter(({ champ }) => champ.tags?.includes(classFilter))
+    if (search) {
+      const q = normalizeSearch(search)
+      list = list.filter(({ champ }) => normalizeSearch(champ.name).includes(q))
+    }
+    return list
+  }, [allChampions, search, classFilter, unplayedOnly])
 
   const handleClose = useCallback(() => setSelected(null), [])
 
@@ -414,8 +443,32 @@ export default function Champions({ summoner, ddragon, appError, initialSearch, 
           onChange={e => setSearch(e.target.value)}
         />
         {!loading && (
-          <span style={{ fontSize: 12, color: 'var(--text-dim)' }}>
+          <span style={{ fontSize: 12, color: 'var(--text-dim)', whiteSpace: 'nowrap' }}>
             {playedCount} played · {allChampions.length} total
+          </span>
+        )}
+      </div>
+      <div className="champ-filter-bar">
+        <div className="filter-btns" style={{ flexWrap: 'wrap' }}>
+          <button
+            className={`filter-btn${!classFilter && !unplayedOnly ? ' active' : ''}`}
+            onClick={() => { setClassFilter(null); setUnplayedOnly(false) }}
+          >All</button>
+          <button
+            className={`filter-btn${unplayedOnly ? ' active' : ''}`}
+            onClick={() => { setUnplayedOnly(v => !v); setClassFilter(null) }}
+          >Unplayed</button>
+          {CHAMP_CLASSES.map(cls => (
+            <button
+              key={cls}
+              className={`filter-btn${classFilter === cls ? ' active' : ''}`}
+              onClick={() => { setClassFilter(classFilter === cls ? null : cls); setUnplayedOnly(false) }}
+            >{cls}</button>
+          ))}
+        </div>
+        {!loading && filtered.length !== allChampions.length && (
+          <span style={{ fontSize: 11, color: 'var(--text-dim)', whiteSpace: 'nowrap' }}>
+            {filtered.length} shown
           </span>
         )}
       </div>
@@ -450,12 +503,11 @@ export default function Champions({ summoner, ddragon, appError, initialSearch, 
                 style={{ cursor: 'pointer', opacity: m ? 1 : 0.55 }}
               >
                 <div className="champ-img-wrap">
-                  {imgUrl
-                    ? <img src={imgUrl} alt={champ.name} className="champ-img" draggable={false}
-                        onError={e => { e.target.style.display='none'; e.target.nextSibling?.style && (e.target.nextSibling.style.display='flex') }} />
-                    : null
-                  }
-                  <div className="champ-img-placeholder" style={{ display: imgUrl ? 'none' : 'flex' }}>⚔</div>
+                  <div className="champ-img-placeholder">⚔</div>
+                  {imgUrl && (
+                    <img src={imgUrl} alt={champ.name} className="champ-img" draggable={false}
+                      onError={e => { e.currentTarget.onerror = null; e.currentTarget.style.display = 'none' }} />
+                  )}
                   <span className="mastery-level-badge" style={{ color, border: `1px solid ${color}55` }}>
                     {lvl > 0 ? `M${lvl}` : '—'}
                   </span>

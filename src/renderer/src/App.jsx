@@ -26,6 +26,7 @@ export default function App() {
   const [region, setRegion]       = useState('EUW')
   const [theme, setTheme]         = useState('default')
   const [champInitSearch, setChampInitSearch] = useState('')
+  const [matchesInitFilter, setMatchesInitFilter] = useState('All')
 
   const prevPhaseRef    = useRef(null)
   const lcuConnectedRef = useRef(false)
@@ -93,6 +94,11 @@ export default function App() {
     setPage('champions')
   }, [])
 
+  const navigateToMatches = useCallback((queueFilter = 'All') => {
+    setMatchesInitFilter(queueFilter)
+    setPage('matches')
+  }, [])
+
   useEffect(() => {
     pollTimerRef.current = setInterval(() => {
       setMatchRefreshKey(k => k + 1)
@@ -136,6 +142,7 @@ export default function App() {
 
   return (
     <div className="app-layout">
+      <div className="bg-stars" aria-hidden="true" />
       <Sidebar
         page={page} setPage={setPage}
         summoner={summoner} ddragon={ddragon}
@@ -158,8 +165,11 @@ export default function App() {
             region={region}
             theme={theme} onThemeChange={handleThemeChange}
             onChampionNavigate={navigateToChampion}
+            onNavigateMatches={navigateToMatches}
             initialSearch={page === 'champions' ? champInitSearch : ''}
             onInitSearchConsumed={() => setChampInitSearch('')}
+            initialQueueFilter={page === 'matches' ? matchesInitFilter : 'All'}
+            onInitQueueFilterConsumed={() => setMatchesInitFilter('All')}
           />
         )}
       </div>
