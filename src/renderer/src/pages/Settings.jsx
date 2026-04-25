@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 
 const REGIONS = ['NA', 'EUW', 'EUNE', 'KR', 'BR', 'JP', 'LAN', 'LAS', 'OCE', 'RU', 'TR']
 
-export default function Settings({ onRefresh }) {
+export default function Settings({ onRefresh, onSettingsSaved }) {
   const [apiKey, setApiKey]           = useState('')
   const [summonerName, setSummoner]   = useState('')
   const [region, setRegion]           = useState('EUW')
@@ -29,7 +29,7 @@ export default function Settings({ onRefresh }) {
       await window.api.saveSettings({ apiKey: apiKey.trim(), summonerName: summonerName.trim(), region })
       await window.api.saveLeaguePath(leaguePath.trim())
       setFeedback({ type: 'success', msg: 'Settings saved. Refreshing data...' })
-      setTimeout(() => { onRefresh(); setFeedback(null) }, 1200)
+      setTimeout(() => { (onSettingsSaved || onRefresh)(); setFeedback(null) }, 1200)
     } catch (e) {
       setFeedback({ type: 'error', msg: e.message })
     } finally {

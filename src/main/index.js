@@ -5,6 +5,8 @@ const fs = require('fs')
 const Store = require('electron-store')
 
 const store = new Store()
+const matchCache = new Map()
+let overlayWin = null
 
 const PLATFORM = {
   NA: 'na1', EUW: 'euw1', EUNE: 'eun1', KR: 'kr',
@@ -29,7 +31,11 @@ function jsonGet(url, headers = {}) {
         try {
           const json = JSON.parse(data)
           if (res.statusCode >= 200 && res.statusCode < 300) resolve(json)
-          else reject(new Error(json.status?.message || `HTTP ${res.statusCode}`))
+          else {
+            const err = new Error(json.status?.message || `HTTP ${res.statusCode}`)
+            err.statusCode = res.statusCode
+            reject(err)
+          }
         } catch { reject(new Error(`Invalid response (HTTP ${res.statusCode})`)) }
       })
     }).on('error', reject)
@@ -162,25 +168,27 @@ app.whenReady().then(() => {
     const name = store.get('summonerName', '')
     const region = store.get('region', 'EUW')
     if (!apiKey || !name) throw new Error('Configure your API key and summoner name in Settings first.')
-    return resolveSummoner(apiKey, name, region)
+    const result = await resolveSummoner(apiKey, name, region)
+    if (result?.puuid) store.set('cachedPuuid', result.puuid)
+    return result
   })
 
-  ipcMain.handle('api:ranked', async (_, summonerId) => {
+  ipcMain.handle('api:ranked', async (_, puuid) => {
     const apiKey = store.get('apiKey', '')
     const region = store.get('region', 'EUW')
-    return riotGet(`https://${PLATFORM[region]}.api.riotgames.com/lol/league/v4/entries/by-summoner/${summonerId}`, apiKey)
+    return riotGet(`https://${PLATFORM[region]}.api.riotgames.com/lol/league/v4/entries/by-puuid/${puuid}`, apiKey)
   })
 
-  ipcMain.handle('api:mastery', async (_, summonerId) => {
+  ipcMain.handle('api:mastery', async (_, puuid) => {
     const apiKey = store.get('apiKey', '')
     const region = store.get('region', 'EUW')
-    return riotGet(`https://${PLATFORM[region]}.api.riotgames.com/lol/champion-mastery/v4/champion-masteries/by-summoner/${summonerId}/top?count=30`, apiKey)
+    return riotGet(`https://${PLATFORM[region]}.api.riotgames.com/lol/champion-mastery/v4/champion-masteries/by-puuid/${puuid}/top?count=30`, apiKey)
   })
 
-  ipcMain.handle('api:all-mastery', async (_, summonerId) => {
+  ipcMain.handle('api:all-mastery', async (_, puuid) => {
     const apiKey = store.get('apiKey', '')
     const region = store.get('region', 'EUW')
-    return riotGet(`https://${PLATFORM[region]}.api.riotgames.com/lol/champion-mastery/v4/champion-masteries/by-summoner/${summonerId}`, apiKey)
+    return riotGet(`https://${PLATFORM[region]}.api.riotgames.com/lol/champion-mastery/v4/champion-masteries/by-puuid/${puuid}`, apiKey)
   })
 
   ipcMain.handle('api:challenges', async (_, puuid) => {
@@ -198,13 +206,21 @@ app.whenReady().then(() => {
   ipcMain.handle('api:match-ids', async (_, puuid) => {
     const apiKey = store.get('apiKey', '')
     const region = store.get('region', 'EUW')
-    return riotGet(`https://${REGIONAL[region]}.api.riotgames.com/lol/match/v5/matches/by-puuid/${puuid}/ids?count=20`, apiKey)
+    return riotGet(`https://${REGIONAL[region]}.api.riotgames.com/lol/match/v5/matches/by-puuid/${puuid}/ids?count=50`, apiKey)
   })
 
   ipcMain.handle('api:match', async (_, matchId) => {
+    if (matchCache.has(matchId)) return matchCache.get(matchId)
     const apiKey = store.get('apiKey', '')
     const region = store.get('region', 'EUW')
-    return riotGet(`https://${REGIONAL[region]}.api.riotgames.com/lol/match/v5/matches/${matchId}`, apiKey)
+    try {
+      const data = await riotGet(`https://${REGIONAL[region]}.api.riotgames.com/lol/match/v5/matches/${matchId}`, apiKey)
+      matchCache.set(matchId, data)
+      return data
+    } catch (e) {
+      if (e.statusCode === 403) return { __restricted: true }
+      throw e
+    }
   })
 
   ipcMain.handle('api:champion-match-ids', async (_, puuid, championId) => {
@@ -229,11 +245,27 @@ app.whenReady().then(() => {
   // ── LCU handlers ─────────────────────────────
   ipcMain.handle('lcu:status', async () => {
     const lf = readLockfile()
-    if (!lf) return { connected: false }
+    if (!lf) {
+      // No client lockfile — check if game process is running (handles Mayhem / edge cases)
+      const live = await liveGet('/liveclientdata/allgamedata')
+      if (live?.activePlayer) return { connected: true, phase: 'InProgress' }
+      return { connected: false }
+    }
     try {
       const phase = await lcuGet('/lol/gameflow/v1/gameflow-phase', lf)
-      return { connected: true, phase: typeof phase === 'string' ? phase : 'None' }
-    } catch { return { connected: false } }
+      const phaseStr = typeof phase === 'string' ? phase : 'None'
+      // If LCU doesn't say InProgress, double-check via game port 2999
+      // (some modes like Mayhem may not update the phase correctly)
+      if (phaseStr !== 'InProgress') {
+        const live = await liveGet('/liveclientdata/allgamedata')
+        if (live?.activePlayer) return { connected: true, phase: 'InProgress' }
+      }
+      return { connected: true, phase: phaseStr }
+    } catch {
+      const live = await liveGet('/liveclientdata/allgamedata')
+      if (live?.activePlayer) return { connected: true, phase: 'InProgress' }
+      return { connected: false }
+    }
   })
 
   ipcMain.handle('lcu:live', async () => {
@@ -288,6 +320,60 @@ app.whenReady().then(() => {
   })
 
   ipcMain.handle('get-league-path', () => store.get('leaguePath', ''))
+
+  // ── Persistent store helpers ──────────────────
+  ipcMain.handle('store:get-followed', () => store.get('followedChallenges', []))
+  ipcMain.handle('store:save-followed', (_, ids) => { store.set('followedChallenges', ids); return true })
+  ipcMain.handle('store:get-opacity', () => store.get('overlayOpacity', 0.93))
+  ipcMain.handle('store:save-opacity', (_, v) => {
+    store.set('overlayOpacity', v)
+    if (overlayWin && !overlayWin.isDestroyed()) overlayWin.setOpacity(parseFloat(v))
+    return true
+  })
+  ipcMain.handle('store:get-srank-overrides', () => store.get('srankOverrides', {}))
+  ipcMain.handle('store:save-srank-overrides', (_, data) => { store.set('srankOverrides', data); return true })
+  ipcMain.handle('store:get-puuid', () => store.get('cachedPuuid', ''))
+
+  // ── Overlay window ────────────────────────────
+  ipcMain.handle('overlay:show', () => {
+    if (overlayWin && !overlayWin.isDestroyed()) return true
+    const saved  = store.get('overlayBounds', {})
+    const op     = store.get('overlayOpacity', 0.93)
+    overlayWin = new BrowserWindow({
+      width: 64, height: 64,
+      x: saved.x, y: saved.y,
+      alwaysOnTop: true, transparent: true, frame: false,
+      skipTaskbar: true, resizable: false,
+      webPreferences: {
+        preload: join(__dirname, '../preload/index.js'),
+        contextIsolation: true, nodeIntegration: false
+      }
+    })
+    overlayWin.setOpacity(op)
+    if (process.env.NODE_ENV === 'development') {
+      overlayWin.loadURL(`${process.env.ELECTRON_RENDERER_URL}?overlay=true`)
+    } else {
+      overlayWin.loadFile(join(__dirname, '../renderer/index.html'), { query: { overlay: 'true' } })
+    }
+    overlayWin.on('moved', () => {
+      if (!overlayWin?.isDestroyed()) {
+        const [x, y] = overlayWin.getPosition()
+        store.set('overlayBounds', { x, y })
+      }
+    })
+    overlayWin.on('closed', () => { overlayWin = null })
+    return true
+  })
+
+  ipcMain.handle('overlay:hide', () => {
+    if (overlayWin && !overlayWin.isDestroyed()) { overlayWin.destroy(); overlayWin = null }
+    return true
+  })
+
+  ipcMain.handle('overlay:resize', (_, w, h) => {
+    if (overlayWin && !overlayWin.isDestroyed()) overlayWin.setSize(w, h)
+    return true
+  })
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow()

@@ -17,7 +17,7 @@ export default function Profile({ summoner, ddragon, appError, onRefresh }) {
   useEffect(() => {
     if (!summoner) return
     setLoading(true)
-    window.api.getRanked(summoner.id)
+    window.api.getRanked(summoner.puuid)
       .then(setRanked)
       .catch(e => setError(e.message))
       .finally(() => setLoading(false))

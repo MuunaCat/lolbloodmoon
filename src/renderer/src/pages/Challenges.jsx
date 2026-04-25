@@ -49,29 +49,36 @@ function tierPct(current, max) {
 
 export default function Challenges({ summoner, ddragon, appError }) {
   // Tracker state
-  const [mastery, setMastery]           = useState(null)
+  const [mastery, setMastery]               = useState(null)
   const [masteryLoading, setMasteryLoading] = useState(false)
-  const [openTracker, setOpenTracker]   = useState(null)
-  const [trackerFilter, setTrackerFilter] = useState('All')
-  const [trackerSearch, setTrackerSearch] = useState('')
+  const [openTracker, setOpenTracker]       = useState(null)
+  const [trackerFilter, setTrackerFilter]   = useState('All')
+  const [trackerSearch, setTrackerSearch]   = useState('')
+  const [srankOverrides, setSrankOverrides] = useState({})
 
   // Challenge state
-  const [playerData, setPlayerData]     = useState(null)
-  const [configs, setConfigs]           = useState(null)
-  const [loading, setLoading]           = useState(false)
-  const [error, setError]               = useState(null)
-  const [search, setSearch]             = useState('')
-  const [expanded, setExpanded]         = useState(null)
-  const [showAll, setShowAll]           = useState(false)
+  const [playerData, setPlayerData] = useState(null)
+  const [configs, setConfigs]       = useState(null)
+  const [loading, setLoading]       = useState(false)
+  const [error, setError]           = useState(null)
+  const [search, setSearch]         = useState('')
+  const [expanded, setExpanded]     = useState(null)
+  const [showAll, setShowAll]       = useState(false)
+  const [followed, setFollowed]     = useState([])
 
   useEffect(() => {
     if (!summoner) return
     setMasteryLoading(true)
-    window.api.getAllMastery(summoner.id)
+    window.api.getAllMastery(summoner.puuid)
       .then(setMastery)
       .catch(() => {})
       .finally(() => setMasteryLoading(false))
-  }, [summoner?.id])
+  }, [summoner?.puuid])
+
+  useEffect(() => {
+    window.api.getSrankOverrides().then(setSrankOverrides).catch(() => {})
+    window.api.getFollowedChallenges().then(setFollowed).catch(() => {})
+  }, [])
 
   useEffect(() => {
     if (!summoner) return
@@ -97,18 +104,36 @@ export default function Challenges({ summoner, ddragon, appError }) {
     return Object.values(ddragon.champions).sort((a, b) => a.name.localeCompare(b.name))
   }, [ddragon])
 
+  const toggleSrank = (champKey) => {
+    const masteryData = masteryById[parseInt(champKey)] || null
+    const apiDone = TRACKER_DEFS.find(t => t.id === 'srank').check(masteryData)
+    const currentDone = srankOverrides[champKey] !== undefined ? srankOverrides[champKey] : apiDone
+    const newOverrides = { ...srankOverrides, [champKey]: !currentDone }
+    setSrankOverrides(newOverrides)
+    window.api.saveSrankOverrides(newOverrides)
+  }
+
   const trackerStats = useMemo(() => {
     return TRACKER_DEFS.map(t => {
-      const withStatus = allChampions.map(c => ({
-        ...c,
-        masteryData: masteryById[parseInt(c.key)] || null,
-        done: t.check(masteryById[parseInt(c.key)] || null)
-      }))
+      const withStatus = allChampions.map(c => {
+        const masteryData = masteryById[parseInt(c.key)] || null
+        const apiDone = t.check(masteryData)
+        const done = t.id === 'srank' && srankOverrides[c.key] !== undefined
+          ? srankOverrides[c.key]
+          : apiDone
+        return { ...c, masteryData, done, isManual: t.id === 'srank' && srankOverrides[c.key] !== undefined }
+      })
       const done  = withStatus.filter(c => c.done).length
       const total = withStatus.length
       return { ...t, withStatus, done, total, pct: total ? Math.round((done / total) * 100) : 0 }
     })
-  }, [allChampions, masteryById])
+  }, [allChampions, masteryById, srankOverrides])
+
+  const toggleFollow = (id) => {
+    const next = followed.includes(id) ? followed.filter(x => x !== id) : [...followed, id]
+    setFollowed(next)
+    window.api.saveFollowedChallenges(next)
+  }
 
   const filteredTrackerChamps = useMemo(() => {
     const t = trackerStats.find(t => t.id === openTracker)
@@ -239,8 +264,15 @@ export default function Challenges({ summoner, ddragon, appError }) {
                         const imgUrl = ddragon
                           ? `https://ddragon.leagueoflegends.com/cdn/${ddragon.version}/img/champion/${champ.image.full}`
                           : null
+                        const isSrank = t.id === 'srank'
                         return (
-                          <div key={champ.key} className={`tracker-card${champ.done ? ' done' : ' todo'}`}>
+                          <div
+                            key={champ.key}
+                            className={`tracker-card${champ.done ? ' done' : ' todo'}`}
+                            onClick={isSrank ? () => toggleSrank(champ.key) : undefined}
+                            style={isSrank ? { cursor: 'pointer' } : undefined}
+                            title={isSrank ? (champ.done ? 'Click to mark as not done' : 'Click to mark as done') : undefined}
+                          >
                             <div className="tracker-card-img-wrap">
                               {imgUrl
                                 ? <img src={imgUrl} alt={champ.name} className="tracker-champ-img" />
@@ -249,6 +281,9 @@ export default function Challenges({ summoner, ddragon, appError }) {
                               <div className={`tracker-status-badge${champ.done ? ' done' : ' todo'}`}>
                                 {champ.done ? '✓' : '✗'}
                               </div>
+                              {champ.isManual && (
+                                <div className="tracker-manual-badge" title="Manually set">M</div>
+                              )}
                             </div>
                             <div className="tracker-card-body">
                               <div className="tracker-champ-name">{champ.name}</div>
@@ -357,6 +392,13 @@ export default function Challenges({ summoner, ddragon, appError }) {
                         <span className="ch-tier-badge" style={{ color, borderColor: `${color}44` }}>{c.level}</span>
                       )}
                       {c.value > 0 && <span className="ch-value">{c.value.toLocaleString()}</span>}
+                      <button
+                        className={`ch-pin-btn${followed.includes(c.id) ? ' pinned' : ''}`}
+                        onClick={e => { e.stopPropagation(); toggleFollow(c.id) }}
+                        title={followed.includes(c.id) ? 'Unpin from overlay' : 'Pin to overlay'}
+                      >
+                        {followed.includes(c.id) ? '★' : '☆'}
+                      </button>
                       <span className="ch-chevron">{isOpen ? '▲' : '▼'}</span>
                     </div>
                   </div>

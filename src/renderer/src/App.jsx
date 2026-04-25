@@ -43,11 +43,20 @@ export default function App() {
       setSummoner(sum)
       setDDragon(dd)
     } catch (e) {
-      setError(e.message)
+      const msg = e.message === 'Unauthorized'
+        ? 'API key expired or invalid. Development keys expire every 24 hours — regenerate yours at developer.riotgames.com, then update it in Settings.'
+        : e.message
+      setError(msg)
     } finally {
       setLoading(false)
     }
   }, [])
+
+  const handleSettingsSaved = useCallback(async () => {
+    await loadApp()
+    setMatchRefreshKey(k => k + 1)
+    setPage('profile')
+  }, [loadApp])
 
   // Riot API polling — refresh match history every 5 min
   useEffect(() => {
@@ -66,7 +75,15 @@ export default function App() {
       const prev = prevPhaseRef.current
       const curr = status.phase
 
-      // Game just ended → wait 3 min then refresh (Riot API processing delay)
+      // Game started → show overlay
+      if (prev !== 'InProgress' && curr === 'InProgress') {
+        window.api.showOverlay()
+      }
+
+      // Game ended → hide overlay + refresh match history after delay
+      if (prev === 'InProgress' && curr !== 'InProgress') {
+        window.api.hideOverlay()
+      }
       if (prev === 'InProgress' && curr === 'EndOfGame') {
         setTimeout(() => setMatchRefreshKey(k => k + 1), 3 * 60 * 1000)
       }
@@ -107,6 +124,7 @@ export default function App() {
           <Page
             summoner={summoner} ddragon={ddragon}
             appError={error} onRefresh={loadApp}
+            onSettingsSaved={handleSettingsSaved}
             matchRefreshKey={matchRefreshKey}
             onManualRefresh={() => setMatchRefreshKey(k => k + 1)}
           />

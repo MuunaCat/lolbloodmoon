@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 
 const POLL_MS = 3000
 
@@ -187,6 +187,8 @@ function ChampSelectView({ session, ddragon }) {
 }
 
 function InGameView({ data, summoner, ddragon }) {
+  const [showStats, setShowStats] = useState(false)
+
   if (!data) return <div className="loading"><div className="spinner" /><span>Connecting to live game...</span></div>
   const { activePlayer, allPlayers } = data
   const blueTeam = allPlayers?.filter(p => p.team === 'ORDER') || []
@@ -234,6 +236,35 @@ function InGameView({ data, summoner, ddragon }) {
               </div>
               <ResourceBar current={stats.resourceValue} max={stats.resourceMax} type={stats.resourceType} />
             </div>
+          )}
+          {stats && (
+            <>
+              <button
+                className="live-stats-toggle"
+                onClick={() => setShowStats(s => !s)}
+              >
+                {showStats ? '▲ Hide Stats' : '▼ Show Stats'}
+              </button>
+              {showStats && (
+                <div className="live-stats-grid">
+                  {[
+                    ['AD',    Math.round(stats.attackDamage  ?? 0)],
+                    ['AP',    Math.round(stats.abilityPower  ?? 0)],
+                    ['Armor', Math.round(stats.armor         ?? 0)],
+                    ['MR',    Math.round(stats.magicResist   ?? 0)],
+                    ['MS',    Math.round(stats.moveSpeed     ?? 0)],
+                    ['AS',    (stats.attackSpeed            ?? 0).toFixed(2)],
+                    ['Haste', Math.round(stats.abilityHaste  ?? 0)],
+                    ['Crit',  Math.round((stats.critChance  ?? 0) * 100) + '%'],
+                  ].map(([label, val]) => (
+                    <div key={label} className="live-stat-item">
+                      <div className="live-stat-val">{val}</div>
+                      <div className="live-stat-label">{label}</div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </>
           )}
         </div>
       )}

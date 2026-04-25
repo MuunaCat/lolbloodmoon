@@ -1,13 +1,14 @@
 {
   "name": "lolmoonbase",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Personal League of Legends stat tracker desktop application",
   "main": "out/main/index.js",
-  "author": "",
+  "author": "MuunaCat",
   "license": "MIT",
   "scripts": {
     "dev": "electron-vite dev",
     "build": "electron-vite build && electron-builder",
+    "release": "electron-vite build && electron-builder --publish always",
     "start": "electron-vite preview"
   },
   "build": {
@@ -28,6 +29,11 @@
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
       "shortcutName": "LoLMoonBase"
+    },
+    "publish": {
+      "provider": "github",
+      "owner": "MuunaCat",
+      "repo": "lolmoonbase"
     }
   },
   "dependencies": {

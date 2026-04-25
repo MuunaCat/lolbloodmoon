@@ -317,11 +317,11 @@ export default function Champions({ summoner, ddragon, appError }) {
   useEffect(() => {
     if (!summoner) return
     setLoading(true)
-    window.api.getMastery(summoner.id)
+    window.api.getMastery(summoner.puuid)
       .then(setMastery)
       .catch(e => setError(e.message))
       .finally(() => setLoading(false))
-  }, [summoner?.id])
+  }, [summoner?.puuid])
 
   // Fetch challenge data + configs once (for the modal)
   useEffect(() => {

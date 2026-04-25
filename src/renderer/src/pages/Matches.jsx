@@ -22,7 +22,11 @@ function kdaRatio(k, d, a) {
 
 const MODE_LABEL = {
   CLASSIC: 'Summoner\'s Rift', ARAM: 'ARAM', URF: 'URF',
-  CHERRY: 'Arena', TUTORIAL: 'Tutorial'
+  CHERRY: 'Arena', TUTORIAL: 'Tutorial',
+  ONEFORALL: 'One for All', NEXUSBLITZ: 'Nexus Blitz',
+  ULTBOOK: 'Ultimate Spellbook', ASSASSINATE: 'Snow ARAM',
+  DOOMBOTSTEEMO: 'Doom Bots', PROJECT: 'PROJECT', ODYSSEY: 'Odyssey',
+  GAMEMODEX: 'Mayhem', PORO_KING: 'Legend of the Poro King'
 }
 
 const QUEUE_FILTER_MODES = ['All', 'Ranked', 'Normal', 'ARAM', 'Other']
@@ -108,42 +112,66 @@ export default function Matches({ summoner, ddragon, appError, matchRefreshKey, 
   const [loadingMore, setLMore]   = useState(false)
   const [error, setError]         = useState(null)
   const [loaded, setLoaded]       = useState(0)
+  const [restricted, setRestricted] = useState(0)
   const [lastUpdated, setLastUpdated] = useState(null)
   const [expanded, setExpanded]   = useState(null)
   const [queueFilter, setQueueFilter] = useState('All')
   const [resultFilter, setResultFilter] = useState('All')
 
-  const fetchBatch = async (ids, existing = []) => {
-    const results = await Promise.all(ids.map(id => window.api.getMatch(id).catch(() => null)))
-    return [...existing, ...results.filter(Boolean)]
+  const fetchBatchProgressive = async (ids, onEach, onRestricted) => {
+    const pending = ids.map(id =>
+      window.api.getMatch(id)
+        .then(m => {
+          if (!m) return
+          if (m.__restricted) { onRestricted?.(); return }
+          onEach(m)
+        })
+        .catch(() => null)
+    )
+    await Promise.all(pending)
   }
 
   useEffect(() => {
     if (!summoner) return
+    let cancelled = false
     setLoading(true)
     setMatches([])
     setMatchIds([])
     setLoaded(0)
+    setRestricted(0)
     setError(null)
     setExpanded(null)
     window.api.getMatchIds(summoner.puuid)
       .then(async ids => {
+        if (cancelled) return
         setMatchIds(ids)
         const batch = ids.slice(0, 10)
-        const data = await fetchBatch(batch)
-        setMatches(data)
-        setLoaded(10)
-        setLastUpdated(new Date())
+        await fetchBatchProgressive(batch, m => {
+          if (cancelled) return
+          setMatches(prev => {
+            if (prev.some(x => x.metadata.matchId === m.metadata.matchId)) return prev
+            return [...prev, m]
+          })
+        }, () => { if (!cancelled) setRestricted(r => r + 1) })
+        if (!cancelled) {
+          setLoaded(10)
+          setLastUpdated(new Date())
+        }
       })
-      .catch(e => setError(e.message))
-      .finally(() => setLoading(false))
+      .catch(e => { if (!cancelled) setError(e.message) })
+      .finally(() => { if (!cancelled) setLoading(false) })
+    return () => { cancelled = true }
   }, [summoner?.puuid, matchRefreshKey])
 
   const loadMore = async () => {
     setLMore(true)
     const next = matchIds.slice(loaded, loaded + 10)
-    const data = await fetchBatch(next, matches)
-    setMatches(data)
+    await fetchBatchProgressive(next, m => {
+      setMatches(prev => {
+        if (prev.some(x => x.metadata.matchId === m.metadata.matchId)) return prev
+        return [...prev, m]
+      })
+    }, () => setRestricted(r => r + 1))
     setLoaded(l => l + 10)
     setLMore(false)
   }
@@ -161,8 +189,8 @@ export default function Matches({ summoner, ddragon, appError, matchRefreshKey, 
         const qId  = match.info.queueId
         if (queueFilter === 'Ranked' && ![420, 440].includes(qId))  return false
         if (queueFilter === 'Normal' && ![400, 430].includes(qId))  return false
-        if (queueFilter === 'ARAM'   && qId !== 450)                return false
-        if (queueFilter === 'Other'  && [420, 440, 400, 430, 450].includes(qId)) return false
+        if (queueFilter === 'ARAM'   && ![450, 900, 2400].includes(qId))              return false
+        if (queueFilter === 'Other'  && [420, 440, 400, 430, 450, 900, 2400].includes(qId)) return false
       }
       return true
     })
@@ -215,6 +243,12 @@ export default function Matches({ summoner, ddragon, appError, matchRefreshKey, 
               {filteredMatches.length} of {matches.length} shown
             </span>
           )}
+        </div>
+      )}
+
+      {restricted > 0 && !loading && (
+        <div style={{ fontSize: 12, color: 'var(--text-dim)', background: 'var(--bg-card)', border: '1px solid var(--border-mid)', borderRadius: 6, padding: '7px 12px', marginBottom: 12 }}>
+          {restricted} ARAM: Mayhem {restricted === 1 ? 'game' : 'games'} not shown — Riot restricts this mode's data via their API.
         </div>
       )}
 
