@@ -12,6 +12,16 @@ const PAGES = {
   matches: Matches, live: LiveGame, settings: Settings
 }
 
+const THEME_CHAMPIONS = {
+  bloodmoon:   { id: 'Jhin',     skin: 2 },
+  void:        { id: 'Malzahar', skin: 0 },
+  ionia:       { id: 'Ahri',     skin: 0 },
+  demacia:     { id: 'Garen',    skin: 0 },
+  noxus:       { id: 'Darius',   skin: 0 },
+  freljord:    { id: 'Ashe',     skin: 0 },
+  shadowisles: { id: 'Thresh',   skin: 0 },
+}
+
 const POLL_INTERVAL = 5 * 60 * 1000
 const LCU_INTERVAL  = 4 * 1000
 
@@ -108,7 +118,8 @@ export default function App() {
 
   useEffect(() => {
     const checkLcu = async () => {
-      const status = await window.api.lcu.status()
+      let status
+      try { status = await window.api.lcu.status() } catch { return }
       setLcuStatus(status)
 
       const prev = prevPhaseRef.current
@@ -139,6 +150,8 @@ export default function App() {
   useEffect(() => { loadApp() }, [])
 
   const Page = PAGES[page]
+  const themeChamp = THEME_CHAMPIONS[theme] || THEME_CHAMPIONS.bloodmoon
+  const splashUrl = `https://ddragon.leagueoflegends.com/cdn/img/champion/loading/${themeChamp.id}_${themeChamp.skin}.jpg`
 
   return (
     <div className="app-layout">
@@ -149,7 +162,20 @@ export default function App() {
         lcuStatus={lcuStatus} theme={theme}
       />
       <div className="main-content">
-        <div className="content-titlebar" />
+        <div className="main-champ-bg" style={{ backgroundImage: `url(${splashUrl})` }} />
+        <div className="content-titlebar">
+          <div className="titlebar-controls">
+            <button className="tb-btn tb-min" onClick={() => window.api.window.minimize()} title="Minimize">
+              <svg viewBox="0 0 14 2" fill="none" width="14" height="2"><path d="M1 1H13" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/></svg>
+            </button>
+            <button className="tb-btn tb-max" onClick={() => window.api.window.maximize()} title="Maximize">
+              <svg viewBox="0 0 13 13" fill="none" width="11" height="11"><rect x="1" y="1" width="11" height="11" stroke="currentColor" strokeWidth="1.5" rx="2"/></svg>
+            </button>
+            <button className="tb-btn tb-close" onClick={() => window.api.window.close()} title="Close">
+              <svg viewBox="0 0 13 13" fill="none" width="11" height="11"><path d="M2 2L11 11M11 2L2 11" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/></svg>
+            </button>
+          </div>
+        </div>
         {loading ? (
           <div className="loading" style={{ flex: 1 }}>
             <div className="spinner" />

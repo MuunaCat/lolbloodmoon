@@ -199,7 +199,7 @@ function createWindow() {
     minWidth: 1024,
     minHeight: 640,
     frame: false,
-    backgroundColor: '#050505',
+    transparent: true,
     icon: join(__dirname, '../../build/icon.ico'),
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),

@@ -13,7 +13,7 @@ const THEME_CHAMPIONS = {
   bloodmoon:   { id: 'Jhin',     skin: 2, name: 'Jhin' },
   void:        { id: 'Malzahar', skin: 0, name: 'Malzahar' },
   ionia:       { id: 'Ahri',     skin: 0, name: 'Ahri' },
-  demacia:     { id: 'Lux',      skin: 0, name: 'Lux' },
+  demacia:     { id: 'Garen',    skin: 0, name: 'Garen' },
   noxus:       { id: 'Darius',   skin: 0, name: 'Darius' },
   freljord:    { id: 'Ashe',     skin: 0, name: 'Ashe' },
   shadowisles: { id: 'Thresh',   skin: 0, name: 'Thresh' },
@@ -48,13 +48,7 @@ export default function Sidebar({ page, setPage, summoner, ddragon, lcuStatus, t
     <div className="sidebar">
       <div className="sidebar-champ-bg" style={{ backgroundImage: `url(${loadingUrl})` }} />
 
-      <div className="sidebar-titlebar">
-        <div className="win-controls">
-          <button className="win-btn-win min" title="Minimize" onClick={() => window.api.window.minimize()}>&#x2013;</button>
-          <button className="win-btn-win max" title="Maximize" onClick={() => window.api.window.maximize()}>&#x25A1;</button>
-          <button className="win-btn-win close" title="Close"   onClick={() => window.api.window.close()}>&#x2715;</button>
-        </div>
-      </div>
+      <div className="sidebar-titlebar" />
 
       <div className="sidebar-brand" onClick={() => setPage('profile')} style={{ cursor: 'pointer' }}>
         <div className="brand-logo">
