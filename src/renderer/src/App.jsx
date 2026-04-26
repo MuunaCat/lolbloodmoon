@@ -20,6 +20,7 @@ const THEME_CHAMPIONS = {
   noxus:       { id: 'Darius',      skin: 0 },
   freljord:    { id: 'Ashe',        skin: 0 },
   shadowisles: { id: 'Thresh',      skin: 0 },
+  astra:       { id: 'MissFortune',  skin: 13 },
   bandlecity:  { id: 'Teemo',       skin: 0 },
   bilgewater:  { id: 'MissFortune', skin: 0 },
   ixtal:       { id: 'Qiyana',      skin: 0 },

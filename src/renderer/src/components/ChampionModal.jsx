@@ -157,13 +157,22 @@ export default function ChampionModal({ masteryEntry, champ, ddragon, summoner, 
 
   useEffect(() => {
     if (!summoner?.puuid || !masteryEntry.championId) return
+    const targetChampId = masteryEntry.championId
     setLoadingStats(true)
-    window.api.getChampionMatchIds(summoner.puuid, masteryEntry.championId)
+    setMatchStats(null)
+    window.api.getChampionMatchIds(summoner.puuid, targetChampId)
       .then(async ids => {
         if (!ids || ids.length === 0) { setMatchStats({ played: 0 }); return }
-        const batch = ids.slice(0, 10)
+        // Fetch up to 20 to have enough after filtering — Riot's champion filter isn't always reliable
+        const batch = ids.slice(0, 20)
         const results = await Promise.all(batch.map(id => window.api.getMatch(id).catch(() => null)))
-        const valid = results.filter(Boolean)
+        // Only count games where the player actually played this specific champion
+        const valid = results.filter(m => {
+          if (!m || m.__restricted) return false
+          const me = m.info.participants.find(p => p.puuid === summoner.puuid)
+          return !!(me && me.championId === targetChampId)
+        })
+        if (valid.length === 0) { setMatchStats({ played: ids.length, sample: 0 }); return }
         let wins = 0, kills = 0, deaths = 0, assists = 0, cs = 0
         for (const m of valid) {
           const me = m.info.participants.find(p => p.puuid === summoner.puuid)

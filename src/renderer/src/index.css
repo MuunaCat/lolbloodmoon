@@ -160,6 +160,25 @@
   --loss: #FF6B6B;
 }
 
+[data-theme="astra"] {
+  --bg: #0d0709;
+  --bg-2: #160b0f;
+  --bg-card: #1e1014;
+  --bg-hover: #2a161c;
+  --gold: #F0A8C0;
+  --gold-light: #FFD0E4;
+  --gold-dim: rgba(240, 168, 192, 0.12);
+  --gold-border: rgba(240, 168, 192, 0.30);
+  --gold-glow: 0 0 28px rgba(240, 168, 192, 0.35);
+  --border: #2e1220;
+  --border-mid: #3e1a2c;
+  --text: #FFF0F6;
+  --text-dim: #A07090;
+  --text-mid: #D0A0B8;
+  --win: #3DD68C;
+  --loss: #FF7B8C;
+}
+
 [data-theme="bandlecity"] {
   --bg: #0a0704;
   --bg-2: #120d06;

@@ -155,6 +155,16 @@ export default function Settings({ onRefresh, onSettingsSaved, theme, onThemeCha
                 <span className="theme-btn-desc">{t.desc}</span>
               </button>
             ))}
+            {summonerName.trim() === 'Enliight#EUNE' && (
+              <button
+                className={`theme-btn${theme === 'astra' ? ' active' : ''}`}
+                onClick={() => onThemeChange?.('astra')}
+                style={{ borderColor: theme === 'astra' ? 'rgba(240,168,192,0.5)' : undefined }}
+              >
+                <span className="theme-btn-name" style={{ color: theme === 'astra' ? '#F0A8C0' : undefined }}>✦ Astra</span>
+                <span className="theme-btn-desc">Cafe Cuties & cozy cats</span>
+              </button>
+            )}
           </div>
         </div>
 
