@@ -87,7 +87,12 @@ function MasteryBar({ pts, lvl, color }) {
   )
 }
 
-export default function ChampionModal({ masteryEntry, champ, ddragon, summoner, rank, onClose, challengeMap, configMap }) {
+const OPGG_REGION = {
+  NA: 'na', EUW: 'euw', EUNE: 'eune', KR: 'kr',
+  BR: 'br', JP: 'jp', LAN: 'lan', LAS: 'las', OCE: 'oce', RU: 'ru', TR: 'tr'
+}
+
+export default function ChampionModal({ masteryEntry, champ, ddragon, summoner, rank, onClose, challengeMap, configMap, region }) {
   const [matchStats, setMatchStats] = useState(null)
   const [loadingStats, setLoadingStats] = useState(false)
 
@@ -163,8 +168,7 @@ export default function ChampionModal({ masteryEntry, champ, ddragon, summoner, 
     window.api.getChampionMatchIds(summoner.puuid, targetChampId)
       .then(async ids => {
         if (!ids || ids.length === 0) { setMatchStats({ played: 0 }); return }
-        // Fetch up to 20 to have enough after filtering — Riot's champion filter isn't always reliable
-        const batch = ids.slice(0, 20)
+        const batch = ids.slice(0, 50)
         const results = await Promise.all(batch.map(id => window.api.getMatch(id).catch(() => null)))
         // Only count games where the player actually played this specific champion
         const valid = results.filter(m => {
@@ -265,11 +269,29 @@ export default function ChampionModal({ masteryEntry, champ, ddragon, summoner, 
           </>
         )}
 
-        <div className="champ-modal-section-title" style={{ marginTop: 20 }}>
-          Recent Performance
-          {matchStats?.sample > 0 && (
-            <span className="champ-modal-section-sub"> — last {matchStats.sample} of {matchStats.played} games</span>
-          )}
+        <div className="champ-modal-section-title" style={{ marginTop: 20, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <span>
+            Recent Performance
+            {matchStats?.sample > 0 && (
+              <span className="champ-modal-section-sub"> — last {matchStats.sample} of {matchStats.played} games</span>
+            )}
+          </span>
+          {champ && summoner && (() => {
+            const r = OPGG_REGION[region] || (region || 'euw').toLowerCase()
+            const slug = summoner.gameName && summoner.tagLine
+              ? `${summoner.gameName}-${summoner.tagLine}`
+              : (summoner.name || '')
+            const url = `https://www.op.gg/summoners/${r}/${encodeURIComponent(slug)}/champions/${champ.id.toLowerCase()}`
+            return (
+              <button
+                className="btn-secondary"
+                style={{ fontSize: 10, padding: '4px 10px', letterSpacing: '0.5px' }}
+                onClick={() => window.api.openExternal(url)}
+              >
+                op.gg ↗
+              </button>
+            )
+          })()}
         </div>
         {loadingStats && (
           <div className="loading" style={{ padding: '16px 0', justifyContent: 'flex-start' }}>

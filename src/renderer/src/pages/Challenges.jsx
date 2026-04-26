@@ -23,7 +23,7 @@ const CHALLENGE_CATEGORY = (id) => {
   return { 1: 'IMAGINATION', 2: 'COLLECTION', 3: 'TEAMWORK', 4: 'EXPERTISE', 5: 'VETERANCY' }[p] || null
 }
 
-const TIER_FILTERS = ['All', 'NONE', 'IRON', 'BRONZE', 'SILVER', 'GOLD', 'PLATINUM', 'EMERALD', 'DIAMOND', 'MASTER', 'GRANDMASTER', 'CHALLENGER']
+const TIER_FILTERS = ['All', 'NONE', 'IRON', 'BRONZE', 'SILVER', 'GOLD', 'PLATINUM', 'DIAMOND', 'MASTER', 'GRANDMASTER', 'CHALLENGER']
 
 const TRACKER_DEFS = [
   {
@@ -401,49 +401,40 @@ export default function Challenges({ summoner, ddragon, appError }) {
 
           {/* Toolbar */}
           <div className="ch-toolbar">
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1 }}>
-              <input
-                className="search-input"
-                style={{ flex: 1, maxWidth: 300 }}
-                placeholder="Search challenges..."
-                value={search}
-                onChange={e => setSearch(e.target.value)}
-              />
-              <button className={`filter-btn${showAll ? '' : ' active'}`} onClick={() => setShowAll(false)}>
-                In Progress ({progressCount})
+            <input
+              className="search-input"
+              style={{ flex: 1, maxWidth: 300 }}
+              placeholder="Search challenges..."
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+            />
+            <select
+              className="form-select"
+              style={{ width: 'auto' }}
+              value={showAll ? 'all' : 'inprogress'}
+              onChange={e => setShowAll(e.target.value === 'all')}
+            >
+              <option value="inprogress">In Progress ({progressCount})</option>
+              <option value="all">All ({merged.length})</option>
+            </select>
+            <select
+              className="form-select"
+              style={{ width: 'auto' }}
+              value={tierFilter}
+              onChange={e => setTierFilter(e.target.value)}
+            >
+              {TIER_FILTERS.map(tier => <option key={tier} value={tier}>{tier}</option>)}
+            </select>
+            {categoryFilter && (
+              <button
+                className="filter-btn active"
+                style={{ color: 'var(--gold)', gap: 4 }}
+                onClick={() => setCategoryFilter(null)}
+              >
+                {CATEGORY_LABELS[categoryFilter] || categoryFilter} ✕
               </button>
-              <button className={`filter-btn${showAll ? ' active' : ''}`} onClick={() => setShowAll(true)}>
-                All ({merged.length})
-              </button>
-              {categoryFilter && (
-                <button
-                  className="filter-btn active"
-                  style={{ color: 'var(--gold)', gap: 4 }}
-                  onClick={() => setCategoryFilter(null)}
-                >
-                  {CATEGORY_LABELS[categoryFilter] || categoryFilter} ✕
-                </button>
-              )}
-            </div>
+            )}
             <div className="ch-count">{filtered.length} shown</div>
-          </div>
-
-          {/* Tier filter bar */}
-          <div className="ch-tier-filter-bar">
-            {TIER_FILTERS.map(tier => {
-              const isActive = tierFilter === tier
-              const color = tier !== 'All' ? TIER_COLOR[tier] : null
-              return (
-                <button
-                  key={tier}
-                  className={`ch-tier-filter-btn${isActive ? ' active' : ''}`}
-                  style={isActive && color ? { color, borderColor: `${color}66`, background: `${color}15` } : {}}
-                  onClick={() => setTierFilter(tier)}
-                >
-                  {tier}
-                </button>
-              )
-            })}
           </div>
 
           {/* Challenge list */}

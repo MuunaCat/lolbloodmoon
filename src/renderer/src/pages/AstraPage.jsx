@@ -2,10 +2,7 @@ import { useState } from 'react'
 
 export default function AstraPage({ ddragon }) {
   const [imgError, setImgError] = useState(false)
-  const [zoomed, setZoomed] = useState(false)
 
-  // Place your generated splash art at: src/renderer/src/assets/astra-splash.jpg
-  // The import below uses Vite's asset system — it will be bundled correctly.
   let splashSrc = null
   try {
     splashSrc = new URL('../assets/astra-splash.jpg', import.meta.url).href
@@ -22,15 +19,11 @@ export default function AstraPage({ ddragon }) {
           <img
             src={splashSrc}
             alt="Astra — Cafe Cuties splash art"
-            className={`astra-splash-img${zoomed ? ' zoomed' : ''}`}
+            className="astra-splash-img"
             onError={() => setImgError(true)}
-            onClick={() => setZoomed(z => !z)}
             draggable={false}
-            title={zoomed ? 'Click to zoom out' : 'Click to zoom in'}
           />
-          <div className="astra-splash-hint">
-            {zoomed ? 'Click to zoom out' : 'Click to zoom in · find the hidden Choncc'}
-          </div>
+          <div className="astra-splash-hint">Find the hidden Choncc</div>
           <div className="astra-splash-title">
             <span className="astra-title-star">✦</span> Astra <span className="astra-title-star">✦</span>
           </div>

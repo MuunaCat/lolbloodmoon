@@ -264,6 +264,7 @@ export default function Profile({ summoner, ddragon, appError, onRefresh, onCham
           onClose={() => setSelectedFreeChamp(null)}
           challengeMap={challengeMap}
           configMap={configMap}
+          region={region}
         />
       )}
     </div>

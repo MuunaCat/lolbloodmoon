@@ -152,7 +152,6 @@ export default function Settings({ onRefresh, onSettingsSaved, theme, onThemeCha
                 onClick={() => onThemeChange?.(t.id)}
               >
                 <span className="theme-btn-name">{t.label}</span>
-                <span className="theme-btn-desc">{t.desc}</span>
               </button>
             ))}
             {summonerName.trim() === 'Enliight#EUNE' && (
@@ -162,7 +161,6 @@ export default function Settings({ onRefresh, onSettingsSaved, theme, onThemeCha
                 style={{ borderColor: theme === 'astra' ? 'rgba(240,168,192,0.5)' : undefined }}
               >
                 <span className="theme-btn-name" style={{ color: theme === 'astra' ? '#F0A8C0' : undefined }}>✦ Astra</span>
-                <span className="theme-btn-desc">Cafe Cuties & cozy cats</span>
               </button>
             )}
           </div>

@@ -7,7 +7,7 @@ function normalizeSearch(s) {
 
 const CHAMP_CLASSES = ['Fighter', 'Tank', 'Mage', 'Assassin', 'Marksman', 'Support']
 
-export default function Champions({ summoner, ddragon, appError, initialSearch, onInitSearchConsumed }) {
+export default function Champions({ summoner, ddragon, appError, initialSearch, onInitSearchConsumed, region }) {
   const [mastery, setMastery]           = useState(null)
   const [loading, setLoading]           = useState(false)
   const [error, setError]               = useState(null)
@@ -141,23 +141,21 @@ export default function Champions({ summoner, ddragon, appError, initialSearch, 
         )}
       </div>
       <div className="champ-filter-bar">
-        <div className="filter-btns" style={{ flexWrap: 'wrap' }}>
-          <button
-            className={`filter-btn${!classFilter && !unplayedOnly ? ' active' : ''}`}
-            onClick={() => { setClassFilter(null); setUnplayedOnly(false) }}
-          >All</button>
-          <button
-            className={`filter-btn${unplayedOnly ? ' active' : ''}`}
-            onClick={() => { setUnplayedOnly(v => !v); setClassFilter(null) }}
-          >Unplayed</button>
-          {CHAMP_CLASSES.map(cls => (
-            <button
-              key={cls}
-              className={`filter-btn${classFilter === cls ? ' active' : ''}`}
-              onClick={() => { setClassFilter(classFilter === cls ? null : cls); setUnplayedOnly(false) }}
-            >{cls}</button>
-          ))}
-        </div>
+        <select
+          className="form-select"
+          style={{ width: 'auto' }}
+          value={unplayedOnly ? 'unplayed' : (classFilter || 'all')}
+          onChange={e => {
+            const v = e.target.value
+            if (v === 'all')      { setClassFilter(null); setUnplayedOnly(false) }
+            else if (v === 'unplayed') { setClassFilter(null); setUnplayedOnly(true) }
+            else                  { setClassFilter(v); setUnplayedOnly(false) }
+          }}
+        >
+          <option value="all">All classes</option>
+          <option value="unplayed">Unplayed</option>
+          {CHAMP_CLASSES.map(cls => <option key={cls} value={cls}>{cls}</option>)}
+        </select>
         {!loading && filtered.length !== allChampions.length && (
           <span style={{ fontSize: 11, color: 'var(--text-dim)', whiteSpace: 'nowrap' }}>
             {filtered.length} shown
@@ -227,6 +225,7 @@ export default function Champions({ summoner, ddragon, appError, initialSearch, 
           onClose={handleClose}
           challengeMap={challengeMap}
           configMap={configMap}
+          region={region}
         />
       )}
     </div>

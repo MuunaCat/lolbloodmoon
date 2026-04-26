@@ -14,21 +14,21 @@ const PAGES = {
 }
 
 const THEME_CHAMPIONS = {
-  bloodmoon:   { id: 'Jhin',        skin: 2 },
-  void:        { id: 'Malzahar',    skin: 0 },
-  ionia:       { id: 'Ahri',        skin: 0 },
-  demacia:     { id: 'Garen',       skin: 0 },
-  noxus:       { id: 'Darius',      skin: 0 },
-  freljord:    { id: 'Ashe',        skin: 0 },
-  shadowisles: { id: 'Thresh',      skin: 0 },
-  astra:       { id: 'MissFortune',  skin: 13 },
-  bandlecity:  { id: 'Teemo',       skin: 0 },
-  bilgewater:  { id: 'MissFortune', skin: 0 },
-  ixtal:       { id: 'Qiyana',      skin: 0 },
-  piltover:    { id: 'Caitlyn',     skin: 0 },
-  shurima:     { id: 'Azir',        skin: 0 },
-  targon:      { id: 'Leona',       skin: 0 },
-  zaun:        { id: 'Viktor',      skin: 0 },
+  bloodmoon:   { id: 'Jhin',        skin: 2  },
+  void:        { id: 'Malzahar',    skin: 4  },
+  ionia:       { id: 'Ahri',        skin: 27 },
+  demacia:     { id: 'Garen',       skin: 6  },
+  noxus:       { id: 'Darius',      skin: 15 },
+  freljord:    { id: 'Ashe',        skin: 1  },
+  shadowisles: { id: 'Thresh',      skin: 5  },
+  astra:       { id: 'MissFortune', skin: 15 },
+  bandlecity:  { id: 'Teemo',       skin: 25 },
+  bilgewater:  { id: 'MissFortune', skin: 8  },
+  ixtal:       { id: 'Qiyana',      skin: 2  },
+  piltover:    { id: 'Caitlyn',     skin: 28 },
+  shurima:     { id: 'Azir',        skin: 4  },
+  targon:      { id: 'Leona',       skin: 10 },
+  zaun:        { id: 'Viktor',      skin: 24 },
 }
 
 const POLL_INTERVAL = 5 * 60 * 1000

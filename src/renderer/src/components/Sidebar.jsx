@@ -1,5 +1,3 @@
-import { useState } from 'react'
-
 const BASE_NAV = [
   { id: 'profile',    label: 'Profile',    icon: '◈' },
   { id: 'champions',  label: 'Champions',  icon: '⚔' },
@@ -12,40 +10,27 @@ const BASE_NAV = [
 const ASTRA_NAV = { id: 'astra', label: 'Astra', icon: '✦', astra: true }
 
 const THEME_CHAMPIONS = {
-  bloodmoon:   { id: 'Jhin',         skin: 2, name: 'Jhin' },
-  void:        { id: 'Malzahar',     skin: 0, name: 'Malzahar' },
-  ionia:       { id: 'Ahri',         skin: 0, name: 'Ahri' },
-  demacia:     { id: 'Garen',        skin: 0, name: 'Garen' },
-  noxus:       { id: 'Darius',       skin: 0, name: 'Darius' },
-  freljord:    { id: 'Ashe',         skin: 0, name: 'Ashe' },
-  shadowisles: { id: 'Thresh',       skin: 0, name: 'Thresh' },
-  astra:       { id: 'MissFortune',   skin: 13, name: 'Miss Fortune' },
-  bandlecity:  { id: 'Teemo',        skin: 0,  name: 'Teemo' },
-  bilgewater:  { id: 'MissFortune',  skin: 0, name: 'Miss Fortune' },
-  ixtal:       { id: 'Qiyana',       skin: 0, name: 'Qiyana' },
-  piltover:    { id: 'Caitlyn',      skin: 0, name: 'Caitlyn' },
-  shurima:     { id: 'Azir',         skin: 0, name: 'Azir' },
-  targon:      { id: 'Leona',        skin: 0, name: 'Leona' },
-  zaun:        { id: 'Viktor',       skin: 0, name: 'Viktor' },
-}
-
-const PAGE_TIPS = {
-  profile:    'Your ranked stats, win streak, and champion highlights are all here.',
-  champions:  'Click any champion card to see your challenge progress and recent stats!',
-  challenges: 'Star (★) a challenge to pin it to your overlay during games.',
-  matches:    'Expand a match row to see full team builds, items, and events.',
-  live:       'Open League of Legends — your overlay appears automatically in-game.',
-  settings:   'Use Riot ID format (Name#TAG) and set your LoL path if needed.',
+  bloodmoon:   { id: 'Jhin',        skin: 2,  name: 'Jhin' },           // Blood Moon Jhin
+  void:        { id: 'Malzahar',    skin: 4,  name: 'Malzahar' },       // Overlord Malzahar
+  ionia:       { id: 'Ahri',        skin: 27, name: 'Ahri' },           // Spirit Blossom Ahri
+  demacia:     { id: 'Garen',       skin: 6,  name: 'Garen' },          // Steel Legion Garen
+  noxus:       { id: 'Darius',      skin: 15, name: 'Darius' },         // God-King Darius
+  freljord:    { id: 'Ashe',        skin: 1,  name: 'Ashe' },           // Freljord Ashe
+  shadowisles: { id: 'Thresh',      skin: 5,  name: 'Thresh' },         // Dark Star Thresh
+  astra:       { id: 'MissFortune', skin: 15, name: 'Miss Fortune' },   // Star Guardian MF
+  bandlecity:  { id: 'Teemo',       skin: 25, name: 'Teemo' },          // Spirit Blossom Teemo
+  bilgewater:  { id: 'MissFortune', skin: 8,  name: 'Miss Fortune' },   // Captain Fortune
+  ixtal:       { id: 'Qiyana',      skin: 2,  name: 'Qiyana' },         // True Damage Qiyana
+  piltover:    { id: 'Caitlyn',     skin: 28, name: 'Caitlyn' },        // Arcane Enforcer Caitlyn
+  shurima:     { id: 'Azir',        skin: 4,  name: 'Azir' },           // Warring Kingdoms Azir
+  targon:      { id: 'Leona',       skin: 10, name: 'Leona' },          // Solar Eclipse Leona
+  zaun:        { id: 'Viktor',      skin: 24, name: 'Viktor' },         // Arcane Savior Viktor
 }
 
 export default function Sidebar({ page, setPage, summoner, ddragon, lcuStatus, theme }) {
-  const [tipVisible, setTipVisible] = useState(false)
-
   const NAV = theme === 'astra' ? [...BASE_NAV, ASTRA_NAV] : BASE_NAV
   const champ      = THEME_CHAMPIONS[theme] || THEME_CHAMPIONS.bloodmoon
   const loadingUrl = `https://ddragon.leagueoflegends.com/cdn/img/champion/loading/${champ.id}_${champ.skin}.jpg`
-  const fallbackUrl = `https://ddragon.leagueoflegends.com/cdn/img/champion/loading/${champ.id}_0.jpg`
-  const tip        = PAGE_TIPS[page] || 'Tracking your League journey.'
 
   const iconUrl = summoner && ddragon
     ? `https://ddragon.leagueoflegends.com/cdn/${ddragon.version}/img/profileicon/${summoner.profileIconId}.png`
@@ -57,8 +42,6 @@ export default function Sidebar({ page, setPage, summoner, ddragon, lcuStatus, t
 
   return (
     <div className="sidebar">
-      <div className="sidebar-champ-bg" style={{ backgroundImage: `url(${loadingUrl})` }} />
-
       <div className="sidebar-titlebar" />
 
       <div className="sidebar-brand" onClick={() => setPage('profile')} style={{ cursor: 'pointer' }}>
@@ -79,6 +62,7 @@ export default function Sidebar({ page, setPage, summoner, ddragon, lcuStatus, t
       </div>
 
       <nav className="sidebar-nav">
+        <div className="sidebar-champ-bg" style={{ backgroundImage: `url(${loadingUrl})` }} />
         {NAV.map(({ id, label, icon, live: isLive, astra: isAstra }) => {
           const isInGame = lcuStatus?.phase === 'InProgress'
           return (
@@ -106,25 +90,6 @@ export default function Sidebar({ page, setPage, summoner, ddragon, lcuStatus, t
           )
         })}
       </nav>
-
-      <div className="sidebar-mascot">
-        <div
-          className="mascot-wrap"
-          onMouseEnter={() => setTipVisible(true)}
-          onMouseLeave={() => setTipVisible(false)}
-        >
-          <div className={`mascot-bubble${tipVisible ? ' visible' : ''}`}>{tip}</div>
-          <div className="mascot-avatar">
-            <img
-              src={loadingUrl}
-              alt={champ.name}
-              className="mascot-img"
-              onError={e => { if (e.target.src !== fallbackUrl) e.target.src = fallbackUrl }}
-            />
-          </div>
-          <span className="mascot-hint-label">ℹ page tips</span>
-        </div>
-      </div>
 
       <div className="sidebar-profile">
         {iconUrl

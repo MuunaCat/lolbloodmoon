@@ -311,7 +311,7 @@ app.whenReady().then(() => {
   ipcMain.handle('api:champion-match-ids', async (_, puuid, championId) => {
     const apiKey = store.get('apiKey', '')
     const region = store.get('region', 'EUW')
-    return riotGet(`https://${REGIONAL[region]}.api.riotgames.com/lol/match/v5/matches/by-puuid/${puuid}/ids?count=20&champion=${championId}`, apiKey)
+    return riotGet(`https://${REGIONAL[region]}.api.riotgames.com/lol/match/v5/matches/by-puuid/${puuid}/ids?count=50&champion=${championId}`, apiKey)
   })
 
   ipcMain.handle('api:champion-rotation', async () => {
