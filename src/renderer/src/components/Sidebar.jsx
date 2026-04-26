@@ -1,6 +1,6 @@
 import { useState } from 'react'
 
-const NAV = [
+const BASE_NAV = [
   { id: 'profile',    label: 'Profile',    icon: '◈' },
   { id: 'champions',  label: 'Champions',  icon: '⚔' },
   { id: 'challenges', label: 'Challenges', icon: '◆' },
@@ -8,6 +8,8 @@ const NAV = [
   { id: 'live',       label: 'Live Game',  icon: '◉', live: true },
   { id: 'settings',   label: 'Settings',   icon: '⚙' }
 ]
+
+const ASTRA_NAV = { id: 'astra', label: 'Astra', icon: '✦', astra: true }
 
 const THEME_CHAMPIONS = {
   bloodmoon:   { id: 'Jhin',         skin: 2, name: 'Jhin' },
@@ -39,6 +41,7 @@ const PAGE_TIPS = {
 export default function Sidebar({ page, setPage, summoner, ddragon, lcuStatus, theme }) {
   const [tipVisible, setTipVisible] = useState(false)
 
+  const NAV = theme === 'astra' ? [...BASE_NAV, ASTRA_NAV] : BASE_NAV
   const champ      = THEME_CHAMPIONS[theme] || THEME_CHAMPIONS.bloodmoon
   const loadingUrl = `https://ddragon.leagueoflegends.com/cdn/img/champion/loading/${champ.id}_${champ.skin}.jpg`
   const fallbackUrl = `https://ddragon.leagueoflegends.com/cdn/img/champion/loading/${champ.id}_0.jpg`
@@ -76,18 +79,22 @@ export default function Sidebar({ page, setPage, summoner, ddragon, lcuStatus, t
       </div>
 
       <nav className="sidebar-nav">
-        {NAV.map(({ id, label, icon, live: isLive }) => {
+        {NAV.map(({ id, label, icon, live: isLive, astra: isAstra }) => {
           const isInGame = lcuStatus?.phase === 'InProgress'
           return (
             <div
               key={id}
               className={`nav-item${page === id ? ' active' : ''}`}
               onClick={() => setPage(id)}
+              style={isAstra ? { borderColor: page === id ? 'rgba(240,168,192,0.4)' : undefined } : undefined}
             >
-              <span className="nav-icon" style={isLive && isInGame ? { color: 'var(--win)' } : undefined}>
+              <span className="nav-icon" style={
+                isAstra ? { color: 'var(--gold)' } :
+                isLive && isInGame ? { color: 'var(--win)' } : undefined
+              }>
                 {icon}
               </span>
-              <span>{label}</span>
+              <span style={isAstra ? { color: 'var(--gold)', fontStyle: 'italic' } : undefined}>{label}</span>
               {isLive && (
                 <span
                   className="lcu-dot"

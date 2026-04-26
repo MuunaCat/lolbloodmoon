@@ -6,10 +6,11 @@ import Challenges from './pages/Challenges'
 import Matches from './pages/Matches'
 import LiveGame from './pages/LiveGame'
 import Settings from './pages/Settings'
+import AstraPage from './pages/AstraPage'
 
 const PAGES = {
   profile: Profile, champions: Champions, challenges: Challenges,
-  matches: Matches, live: LiveGame, settings: Settings
+  matches: Matches, live: LiveGame, settings: Settings, astra: AstraPage
 }
 
 const THEME_CHAMPIONS = {
