@@ -118,11 +118,13 @@ function SearchingView({ lobby, queueTime, phase }) {
   )
 }
 
-function ChampSelectView({ session, ddragon }) {
+function ChampSelectView({ session, ddragon, masteryById, srankOverrides }) {
   if (!session) return <div className="loading"><div className="spinner" /></div>
 
   const myTeam    = session.myTeam    || []
   const theirTeam = session.theirTeam || []
+  const bench     = session.benchChampions || []
+  const isAram    = bench.length > 0
   const timer     = session.timer
   const timeLeft  = timer ? Math.max(0, Math.round((timer.adjustedTimeLeftInPhase ?? timer.timeLeftInPhase) / 1000)) : null
 
@@ -131,10 +133,47 @@ function ChampSelectView({ session, ddragon }) {
     return Object.values(ddragon.champions).find(c => parseInt(c.key) === id) || null
   }
 
+  const getNeeds = (champ) => {
+    if (!champ || !masteryById) return { needsS: false, needsM5: false }
+    const m = masteryById[parseInt(champ.key)]
+    const sRankApi = m?.chestGranted === true
+    const sRankDone = srankOverrides[champ.key] !== undefined ? srankOverrides[champ.key] : sRankApi
+    return { needsS: !sRankDone, needsM5: !(m && m.championLevel >= 5), mastery: m }
+  }
+
+  const getMasteryBadges = (champ) => {
+    const { needsS, needsM5, mastery } = getNeeds(champ)
+    if (!needsS && !needsM5) return null
+    return (
+      <span style={{ display: 'flex', gap: 3, flexShrink: 0 }}>
+        {needsS && (
+          <span title="S rank chest not earned" style={{ fontSize: 9, fontWeight: 700, padding: '1px 4px', borderRadius: 3, background: 'rgba(200,155,60,0.18)', color: 'var(--gold)', border: '1px solid rgba(200,155,60,0.3)' }}>S</span>
+        )}
+        {needsM5 && (
+          <span title={mastery ? `Mastery ${mastery.championLevel}` : 'Never played'} style={{ fontSize: 9, fontWeight: 700, padding: '1px 4px', borderRadius: 3, background: 'rgba(92,184,228,0.15)', color: '#5CB8E4', border: '1px solid rgba(92,184,228,0.3)' }}>M5</span>
+        )}
+      </span>
+    )
+  }
+
+  const benchChamps = bench
+    .map(b => getChamp(b.championId))
+    .filter(Boolean)
+    .map(champ => ({ champ, ...getNeeds(champ) }))
+    .sort((a, b) => {
+      const scoreA = (a.needsS ? 2 : 0) + (a.needsM5 ? 1 : 0)
+      const scoreB = (b.needsS ? 2 : 0) + (b.needsM5 ? 1 : 0)
+      if (scoreB !== scoreA) return scoreB - scoreA
+      return a.champ.name.localeCompare(b.champ.name)
+    })
+
+  const benchNeedsS  = benchChamps.filter(c => c.needsS).length
+  const benchNeedsM5 = benchChamps.filter(c => c.needsM5).length
+
   return (
     <div className="lv-champ-select">
       <div className="lv-cs-header">
-        <div className="lv-cs-phase">Champion Select</div>
+        <div className="lv-cs-phase">{isAram ? 'ARAM — Champion Select' : 'Champion Select'}</div>
         {timeLeft !== null && (
           <div className="lv-cs-timer" style={{ color: timeLeft < 10 ? 'var(--loss)' : 'var(--gold)' }}>
             {timeLeft}s
@@ -158,30 +197,118 @@ function ChampSelectView({ session, ddragon }) {
                 }
                 <span className="lv-cs-champ-name">{champ?.name || (p.championId ? '...' : 'Picking')}</span>
                 {isMe && <span className="live-me-tag">YOU</span>}
+                {champ && getMasteryBadges(champ)}
+                {champ && (
+                  <button
+                    className="btn-secondary"
+                    style={{ marginLeft: 'auto', padding: '2px 7px', fontSize: 10, flexShrink: 0 }}
+                    title={`Open ${champ.name} on op.gg`}
+                    onClick={() => window.api.openExternal(`https://www.op.gg/champions/${champ.id.toLowerCase()}/build`)}
+                  >op.gg</button>
+                )}
               </div>
             )
           })}
         </div>
-        <div className="lv-cs-vs">VS</div>
-        <div className="lv-cs-team">
-          <div className="lv-cs-team-label" style={{ color: '#E44D4D' }}>Enemy Team</div>
-          {theirTeam.map((p, i) => {
-            const champ = getChamp(p.championId)
-            const imgUrl = champ && ddragon
-              ? `https://ddragon.leagueoflegends.com/cdn/${ddragon.version}/img/champion/${champ.image.full}`
-              : null
-            return (
-              <div key={i} className="lv-cs-player">
-                {imgUrl
-                  ? <img src={imgUrl} alt={champ?.name} className="lv-cs-champ-img" />
-                  : <div className="lv-cs-champ-empty">{p.championId ? '?' : '—'}</div>
-                }
-                <span className="lv-cs-champ-name">{champ?.name || (p.championId ? '...' : 'Picking')}</span>
-              </div>
-            )
-          })}
-        </div>
+        {!isAram && (
+          <>
+            <div className="lv-cs-vs">VS</div>
+            <div className="lv-cs-team">
+              <div className="lv-cs-team-label" style={{ color: '#E44D4D' }}>Enemy Team</div>
+              {theirTeam.map((p, i) => {
+                const champ = getChamp(p.championId)
+                const imgUrl = champ && ddragon
+                  ? `https://ddragon.leagueoflegends.com/cdn/${ddragon.version}/img/champion/${champ.image.full}`
+                  : null
+                return (
+                  <div key={i} className="lv-cs-player">
+                    {imgUrl
+                      ? <img src={imgUrl} alt={champ?.name} className="lv-cs-champ-img" />
+                      : <div className="lv-cs-champ-empty">{p.championId ? '?' : '—'}</div>
+                    }
+                    <span className="lv-cs-champ-name">{champ?.name || (p.championId ? '...' : 'Picking')}</span>
+                    {champ && (
+                      <button
+                        className="btn-secondary"
+                        style={{ marginLeft: 'auto', padding: '2px 7px', fontSize: 10, flexShrink: 0 }}
+                        title={`Open ${champ.name} on op.gg`}
+                        onClick={() => window.api.openExternal(`https://www.op.gg/champions/${champ.id.toLowerCase()}/build`)}
+                      >op.gg</button>
+                    )}
+                  </div>
+                )
+              })}
+            </div>
+          </>
+        )}
       </div>
+
+      {isAram && benchChamps.length > 0 && (
+        <div style={{ marginTop: 20 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
+            <div className="lv-cs-team-label" style={{ color: 'var(--gold)', margin: 0 }}>Available Champions</div>
+            {masteryById && (benchNeedsS > 0 || benchNeedsM5 > 0) && (
+              <span style={{ fontSize: 11, color: 'var(--text-dim)' }}>
+                {benchNeedsS > 0 && <span style={{ color: 'var(--gold)' }}>{benchNeedsS} need S</span>}
+                {benchNeedsS > 0 && benchNeedsM5 > 0 && <span style={{ color: 'var(--text-dim)' }}> · </span>}
+                {benchNeedsM5 > 0 && <span style={{ color: '#5CB8E4' }}>{benchNeedsM5} need M5</span>}
+              </span>
+            )}
+          </div>
+          {!masteryById && (
+            <div className="loading" style={{ padding: '16px 0' }}>
+              <div className="spinner" />
+              <span style={{ fontSize: 12 }}>Loading mastery data...</span>
+            </div>
+          )}
+          {masteryById && <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(96px, 1fr))', gap: 6 }}>
+            {benchChamps.map(({ champ, needsS, needsM5, mastery }) => {
+              const imgUrl = ddragon
+                ? `https://ddragon.leagueoflegends.com/cdn/${ddragon.version}/img/champion/${champ.image.full}`
+                : null
+              const needsWork = needsS || needsM5
+              return (
+                <div
+                  key={champ.key}
+                  style={{
+                    display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4,
+                    padding: '7px 5px', borderRadius: 6,
+                    background: needsWork ? 'rgba(200,155,60,0.06)' : 'rgba(255,255,255,0.02)',
+                    border: `1px solid ${needsWork ? 'rgba(200,155,60,0.18)' : 'rgba(255,255,255,0.05)'}`,
+                    opacity: needsWork ? 1 : 0.45,
+                    cursor: 'pointer',
+                    transition: 'opacity 0.15s',
+                  }}
+                  title={`${champ.name} — open on op.gg`}
+                  onClick={() => window.api.openExternal(`https://www.op.gg/champions/${champ.id.toLowerCase()}/build`)}
+                >
+                  {imgUrl && (
+                    <img src={imgUrl} alt={champ.name} style={{ width: 40, height: 40, borderRadius: 4, objectFit: 'cover' }} />
+                  )}
+                  <span style={{ fontSize: 10, color: 'var(--text)', textAlign: 'center', lineHeight: 1.3, wordBreak: 'break-word' }}>
+                    {champ.name}
+                  </span>
+                  {(needsS || needsM5) && (
+                    <div style={{ display: 'flex', gap: 3, flexWrap: 'wrap', justifyContent: 'center' }}>
+                      {needsS && (
+                        <span style={{ fontSize: 8, fontWeight: 700, padding: '1px 3px', borderRadius: 2, background: 'rgba(200,155,60,0.18)', color: 'var(--gold)', border: '1px solid rgba(200,155,60,0.3)' }}>S</span>
+                      )}
+                      {needsM5 && (
+                        <span style={{ fontSize: 8, fontWeight: 700, padding: '1px 3px', borderRadius: 2, background: 'rgba(92,184,228,0.15)', color: '#5CB8E4', border: '1px solid rgba(92,184,228,0.3)' }}
+                          title={mastery ? `Mastery ${mastery.championLevel}` : 'Never played'}
+                        >M{mastery?.championLevel ?? '0'}</span>
+                      )}
+                    </div>
+                  )}
+                  {!needsS && !needsM5 && (
+                    <span style={{ fontSize: 8, color: 'var(--win)' }}>✓ Done</span>
+                  )}
+                </div>
+              )
+            })}
+          </div>}
+        </div>
+      )}
     </div>
   )
 }
@@ -346,7 +473,10 @@ export default function LiveGame({ summoner, ddragon }) {
   const [queueTime, setQueueTime]     = useState(null)
   const [gameTime, setGameTime]       = useState(null)
   const [displayTime, setDisplayTime] = useState(null)
+  const [csmasteryById, setCsMasteryById]     = useState(null)
+  const [csSrankOverrides, setCsSrankOverrides] = useState({})
   const summonerFetched               = useRef(false)
+  const masteryFetched                = useRef(false)
   const intervalRef                   = useRef(null)
   const tickRef                       = useRef(null)
 
@@ -375,14 +505,30 @@ export default function LiveGame({ summoner, ddragon }) {
         if (live.gameData?.gameTime != null) setGameTime(live.gameData.gameTime)
       }
       setChampSelect(null); setLobby(null)
+      masteryFetched.current = false
     } else if (p === 'ChampSelect') {
       const cs = await window.api.lcu.champSelect()
       setChampSelect(cs); setLiveData(null); setGameTime(null)
+      if (!masteryFetched.current && summoner?.puuid) {
+        masteryFetched.current = true
+        try {
+          const [masteryList, overrides] = await Promise.all([
+            window.api.getAllMastery(summoner.puuid),
+            window.api.getSrankOverrides()
+          ])
+          const map = {}
+          masteryList?.forEach(m => { map[m.championId] = m })
+          setCsMasteryById(map)
+          setCsSrankOverrides(overrides || {})
+        } catch {}
+      }
     } else if (['Lobby', 'Matchmaking', 'ReadyCheck'].includes(p)) {
       const [lb, qt] = await Promise.all([window.api.lcu.lobby(), window.api.lcu.queueTime()])
       setLobby(lb); setQueueTime(qt); setLiveData(null); setChampSelect(null); setGameTime(null)
+      masteryFetched.current = false
     } else {
       setLiveData(null); setChampSelect(null); setLobby(null); setGameTime(null)
+      masteryFetched.current = false
     }
 
     if (!summonerFetched.current) {
@@ -443,7 +589,7 @@ export default function LiveGame({ summoner, ddragon }) {
       )}
 
       {connected && isInGame    && <InGameView data={liveData} summoner={summoner} ddragon={ddragon} />}
-      {connected && isInCS      && <ChampSelectView session={champSelect} ddragon={ddragon} />}
+      {connected && isInCS      && <ChampSelectView session={champSelect} ddragon={ddragon} masteryById={csmasteryById} srankOverrides={csSrankOverrides} />}
       {connected && (isSearching || isInLobby) && <SearchingView lobby={lobby} queueTime={queueTime} phase={phase} />}
       {connected && !isInGame && !isInCS && !isSearching && !isInLobby && (
         <IdleView lcuSummoner={lcuSummoner} ranked={ranked} ddragon={ddragon} />

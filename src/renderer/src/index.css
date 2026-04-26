@@ -83,6 +83,101 @@
   --loss: #FF6B6B;
 }
 
+[data-theme="ionia"] {
+  --bg: #0a0610;
+  --bg-2: #130b1a;
+  --bg-card: #1a1022;
+  --bg-hover: #24152e;
+  --gold: #D4829E;
+  --gold-light: #F0A8C0;
+  --gold-dim: rgba(212, 130, 158, 0.12);
+  --gold-border: rgba(212, 130, 158, 0.28);
+  --gold-glow: 0 0 28px rgba(212, 130, 158, 0.25);
+  --border: #1f1028;
+  --border-mid: #2a1838;
+  --text: #F5E8F0;
+  --text-dim: #907888;
+  --text-mid: #C0A0B0;
+  --win: #3DD68C;
+  --loss: #FF7070;
+}
+
+[data-theme="demacia"] {
+  --bg: #020810;
+  --bg-2: #040e1e;
+  --bg-card: #071628;
+  --bg-hover: #0c1f36;
+  --gold: #A8C8E8;
+  --gold-light: #C8E0F8;
+  --gold-dim: rgba(150, 190, 230, 0.12);
+  --gold-border: rgba(150, 190, 230, 0.28);
+  --gold-glow: 0 0 28px rgba(150, 190, 230, 0.25);
+  --border: #0a1a30;
+  --border-mid: #102440;
+  --text: #E8F0F8;
+  --text-dim: #607090;
+  --text-mid: #8AADCC;
+  --win: #3DD68C;
+  --loss: #FF6B6B;
+}
+
+[data-theme="noxus"] {
+  --bg: #080404;
+  --bg-2: #130608;
+  --bg-card: #1c080a;
+  --bg-hover: #280c10;
+  --gold: #C03030;
+  --gold-light: #E05050;
+  --gold-dim: rgba(180, 40, 40, 0.12);
+  --gold-border: rgba(180, 40, 40, 0.28);
+  --gold-glow: 0 0 28px rgba(180, 40, 40, 0.25);
+  --border: #240a0c;
+  --border-mid: #321010;
+  --text: #F0D8D8;
+  --text-dim: #906868;
+  --text-mid: #C09090;
+  --win: #3DD68C;
+  --loss: #FF8080;
+}
+
+[data-theme="freljord"] {
+  --bg: #020810;
+  --bg-2: #040e1c;
+  --bg-card: #061428;
+  --bg-hover: #0a1e38;
+  --gold: #80D8F8;
+  --gold-light: #A8EEFF;
+  --gold-dim: rgba(100, 200, 240, 0.12);
+  --gold-border: rgba(100, 200, 240, 0.28);
+  --gold-glow: 0 0 28px rgba(100, 200, 240, 0.3);
+  --border: #0a1830;
+  --border-mid: #102440;
+  --text: #D8F0FF;
+  --text-dim: #507090;
+  --text-mid: #80BBDD;
+  --win: #3DD68C;
+  --loss: #FF6B6B;
+}
+
+[data-theme="shadowisles"] {
+  --bg: #020a08;
+  --bg-2: #041210;
+  --bg-card: #061a16;
+  --bg-hover: #0a241e;
+  --gold: #40C8A0;
+  --gold-light: #70E8C8;
+  --gold-dim: rgba(50, 190, 150, 0.12);
+  --gold-border: rgba(50, 190, 150, 0.28);
+  --gold-glow: 0 0 28px rgba(50, 190, 150, 0.25);
+  --border: #0a201a;
+  --border-mid: #122e26;
+  --text: #C8F0E8;
+  --text-dim: #408070;
+  --text-mid: #70B0A0;
+  --win: #3DD68C;
+  --loss: #FF6B6B;
+}
+
 html, body, #root { height: 100%; overflow: hidden; }
 
 body {

@@ -3,10 +3,15 @@ import { useState, useEffect } from 'react'
 const REGIONS = ['NA', 'EUW', 'EUNE', 'KR', 'BR', 'JP', 'LAN', 'LAS', 'OCE', 'RU', 'TR']
 
 const THEMES = [
-  { id: 'default',   label: 'Default',    desc: 'Classic dark gold' },
-  { id: 'bloodmoon', label: 'Blood Moon', desc: 'Deep crimson & ember' },
-  { id: 'cosmic',    label: 'Cosmic',     desc: 'Deep space blue & nebula' },
-  { id: 'void',      label: 'The Void',   desc: 'Dark purple void' },
+  { id: 'default',     label: 'Default',       desc: 'Classic dark gold' },
+  { id: 'bloodmoon',   label: 'Blood Moon',    desc: 'Deep crimson & ember' },
+  { id: 'cosmic',      label: 'Cosmic',        desc: 'Deep space blue & nebula' },
+  { id: 'void',        label: 'The Void',      desc: 'Dark purple void' },
+  { id: 'ionia',       label: 'Ionia',         desc: 'Cherry blossom pink' },
+  { id: 'demacia',     label: 'Demacia',       desc: 'Royal silver blue' },
+  { id: 'noxus',       label: 'Noxus',         desc: 'Iron & blood red' },
+  { id: 'freljord',    label: 'Freljord',      desc: 'Crystalline ice blue' },
+  { id: 'shadowisles', label: 'Shadow Isles',  desc: 'Mist teal & dark' },
 ]
 
 export default function Settings({ onRefresh, onSettingsSaved, theme, onThemeChange }) {
@@ -134,7 +139,7 @@ export default function Settings({ onRefresh, onSettingsSaved, theme, onThemeCha
 
         <div className="form-group">
           <label className="form-label">Theme</label>
-          <div style={{ display: 'flex', gap: 10 }}>
+          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
             {THEMES.map(t => (
               <button
                 key={t.id}

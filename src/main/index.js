@@ -28,11 +28,15 @@ function createOverlayWindow() {
     x: saved.x, y: saved.y,
     alwaysOnTop: true, transparent: true, frame: false,
     skipTaskbar: true, resizable: false,
+    focusable: false, show: false,
     icon: join(__dirname, '../../build/icon.ico'),
     webPreferences: { preload: join(__dirname, '../preload/index.js'), contextIsolation: true, nodeIntegration: false }
   })
   overlayWin.setOpacity(op)
   overlayWin.setAlwaysOnTop(true, 'screen-saver')
+  overlayWin.once('ready-to-show', () => {
+    if (overlayWin && !overlayWin.isDestroyed()) overlayWin.show()
+  })
   if (process.env.NODE_ENV === 'development') {
     overlayWin.loadURL(`${process.env.ELECTRON_RENDERER_URL}?overlay=true`)
   } else {
@@ -58,13 +62,8 @@ function startGameWatch() {
   gameWatchTimer = setInterval(async () => {
     if (!overlayWin || overlayWin.isDestroyed()) { stopGameWatch(); return }
     const running = await isLeagueGameRunning()
-    if (running) {
-      overlayWin.setAlwaysOnTop(true, 'screen-saver')
-      overlayWin.moveTop()
-    } else {
-      destroyOverlayWindow()
-    }
-  }, 2000)
+    if (!running) destroyOverlayWindow()
+  }, 4000)
 }
 
 function stopGameWatch() {

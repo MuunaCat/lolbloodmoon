@@ -80,7 +80,10 @@ export default function OverlayApp() {
         if (live?.activePlayer) {
           setIsDead(!!live.activePlayer.isDead)
           const s = live.activePlayer.scores
-          if (s) setLiveStats({ k: s.kills ?? 0, d: s.deaths ?? 0, a: s.assists ?? 0, cs: s.creepScore ?? 0 })
+          if (s) setLiveStats({
+            k: s.kills ?? 0, d: s.deaths ?? 0, a: s.assists ?? 0, cs: s.creepScore ?? 0,
+            champ: live.activePlayer.championName || null
+          })
         } else {
           setIsDead(false)
           setLiveStats(null)
@@ -126,7 +129,11 @@ export default function OverlayApp() {
           {/* Header */}
           <div style={{ display: 'flex', alignItems: 'center', padding: '4px 7px', background: deadActive ? 'rgba(200,50,50,0.08)' : 'rgba(200,155,60,0.06)', borderBottom: `1px solid ${deadActive ? 'rgba(200,50,50,0.14)' : 'rgba(200,155,60,0.1)'}`, flexShrink: 0, gap: 4 }}>
             <span style={{ fontSize: 9, fontWeight: 700, color: deadActive ? '#E55' : gold, letterSpacing: 1, textTransform: 'uppercase', flex: 1 }}>
-              {deadActive ? '☠ Dead' : '★ Challenges'}
+              {deadActive ? '☠' : liveStats ? '⚔' : '★'}{' '}
+              {liveStats?.champ
+                ? <span style={{ textTransform: 'none', letterSpacing: 0 }}>{liveStats.champ}</span>
+                : (deadActive ? 'Dead' : 'Challenges')
+              }
             </span>
             {liveStats && (
               <span style={{ fontSize: 9, color: '#aaa', fontVariantNumeric: 'tabular-nums', marginRight: 4 }}>
