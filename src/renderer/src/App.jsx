@@ -24,7 +24,7 @@ export default function App() {
   const [lcuStatus, setLcuStatus] = useState({ connected: false, phase: null })
   const [matchRefreshKey, setMatchRefreshKey] = useState(0)
   const [region, setRegion]       = useState('EUW')
-  const [theme, setTheme]         = useState('default')
+  const [theme, setTheme]         = useState('bloodmoon')
   const [champInitSearch, setChampInitSearch] = useState('')
   const [matchesInitFilter, setMatchesInitFilter] = useState('All')
 
@@ -146,7 +146,7 @@ export default function App() {
       <Sidebar
         page={page} setPage={setPage}
         summoner={summoner} ddragon={ddragon}
-        lcuStatus={lcuStatus}
+        lcuStatus={lcuStatus} theme={theme}
       />
       <div className="main-content">
         <div className="content-titlebar" />

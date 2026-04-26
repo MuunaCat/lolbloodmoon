@@ -1,13 +1,41 @@
+import { useState } from 'react'
+
 const NAV = [
-  { id: 'profile',    label: 'Profile',     icon: '◈' },
-  { id: 'champions',  label: 'Champions',   icon: '⚔' },
-  { id: 'challenges', label: 'Challenges',  icon: '◆' },
-  { id: 'matches',    label: 'Matches',     icon: '⊞' },
-  { id: 'live',       label: 'Live Game',   icon: '◉', live: true },
-  { id: 'settings',   label: 'Settings',    icon: '⚙' }
+  { id: 'profile',    label: 'Profile',    icon: '◈' },
+  { id: 'champions',  label: 'Champions',  icon: '⚔' },
+  { id: 'challenges', label: 'Challenges', icon: '◆' },
+  { id: 'matches',    label: 'Matches',    icon: '⊞' },
+  { id: 'live',       label: 'Live Game',  icon: '◉', live: true },
+  { id: 'settings',   label: 'Settings',   icon: '⚙' }
 ]
 
-export default function Sidebar({ page, setPage, summoner, ddragon, lcuStatus }) {
+const THEME_CHAMPIONS = {
+  bloodmoon:   { id: 'Jhin',     skin: 2, name: 'Jhin' },
+  void:        { id: 'Malzahar', skin: 0, name: 'Malzahar' },
+  ionia:       { id: 'Ahri',     skin: 0, name: 'Ahri' },
+  demacia:     { id: 'Lux',      skin: 0, name: 'Lux' },
+  noxus:       { id: 'Darius',   skin: 0, name: 'Darius' },
+  freljord:    { id: 'Ashe',     skin: 0, name: 'Ashe' },
+  shadowisles: { id: 'Thresh',   skin: 0, name: 'Thresh' },
+}
+
+const PAGE_TIPS = {
+  profile:    'Your ranked stats, win streak, and champion highlights are all here.',
+  champions:  'Click any champion card to see your challenge progress and recent stats!',
+  challenges: 'Star (★) a challenge to pin it to your overlay during games.',
+  matches:    'Expand a match row to see full team builds, items, and events.',
+  live:       'Open League of Legends — your overlay appears automatically in-game.',
+  settings:   'Use Riot ID format (Name#TAG) and set your LoL path if needed.',
+}
+
+export default function Sidebar({ page, setPage, summoner, ddragon, lcuStatus, theme }) {
+  const [tipVisible, setTipVisible] = useState(false)
+
+  const champ      = THEME_CHAMPIONS[theme] || THEME_CHAMPIONS.bloodmoon
+  const loadingUrl = `https://ddragon.leagueoflegends.com/cdn/img/champion/loading/${champ.id}_${champ.skin}.jpg`
+  const fallbackUrl = `https://ddragon.leagueoflegends.com/cdn/img/champion/loading/${champ.id}_0.jpg`
+  const tip        = PAGE_TIPS[page] || 'Tracking your League journey.'
+
   const iconUrl = summoner && ddragon
     ? `https://ddragon.leagueoflegends.com/cdn/${ddragon.version}/img/profileicon/${summoner.profileIconId}.png`
     : null
@@ -18,17 +46,18 @@ export default function Sidebar({ page, setPage, summoner, ddragon, lcuStatus })
 
   return (
     <div className="sidebar">
+      <div className="sidebar-champ-bg" style={{ backgroundImage: `url(${loadingUrl})` }} />
+
       <div className="sidebar-titlebar">
         <div className="win-controls">
           <button className="win-btn-win min" title="Minimize" onClick={() => window.api.window.minimize()}>&#x2013;</button>
           <button className="win-btn-win max" title="Maximize" onClick={() => window.api.window.maximize()}>&#x25A1;</button>
-          <button className="win-btn-win close" title="Close"  onClick={() => window.api.window.close()}>&#x2715;</button>
+          <button className="win-btn-win close" title="Close"   onClick={() => window.api.window.close()}>&#x2715;</button>
         </div>
       </div>
 
       <div className="sidebar-brand" onClick={() => setPage('profile')} style={{ cursor: 'pointer' }}>
         <div className="brand-logo">
-          {/* Blood Moon crescent icon */}
           <svg className="brand-hex" viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg">
             <defs>
               <mask id="moon-crescent-mask">
@@ -68,6 +97,24 @@ export default function Sidebar({ page, setPage, summoner, ddragon, lcuStatus })
           )
         })}
       </nav>
+
+      <div className="sidebar-mascot">
+        <div
+          className="mascot-wrap"
+          onMouseEnter={() => setTipVisible(true)}
+          onMouseLeave={() => setTipVisible(false)}
+        >
+          <div className={`mascot-bubble${tipVisible ? ' visible' : ''}`}>{tip}</div>
+          <div className="mascot-avatar">
+            <img
+              src={loadingUrl}
+              alt={champ.name}
+              className="mascot-img"
+              onError={e => { if (e.target.src !== fallbackUrl) e.target.src = fallbackUrl }}
+            />
+          </div>
+        </div>
+      </div>
 
       <div className="sidebar-profile">
         {iconUrl

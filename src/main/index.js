@@ -409,7 +409,11 @@ app.whenReady().then(() => {
   ipcMain.handle('store:get-srank-overrides', () => store.get('srankOverrides', {}))
   ipcMain.handle('store:save-srank-overrides', (_, data) => { store.set('srankOverrides', data); return true })
   ipcMain.handle('store:get-puuid', () => store.get('cachedPuuid', ''))
-  ipcMain.handle('store:get-theme', () => store.get('theme', 'default'))
+  ipcMain.handle('store:get-theme', () => {
+    const t = store.get('theme', 'bloodmoon')
+    if (t === 'default' || t === 'cosmic') return 'bloodmoon'
+    return t
+  })
   ipcMain.handle('store:save-theme', (_, t) => { store.set('theme', t); return true })
   ipcMain.handle('store:get-overlay-settings', () => store.get('overlaySettings', { showDeathPulse: true }))
   ipcMain.handle('store:save-overlay-settings', (_, s) => { store.set('overlaySettings', s); return true })

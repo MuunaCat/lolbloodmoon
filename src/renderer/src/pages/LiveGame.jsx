@@ -490,7 +490,10 @@ export default function LiveGame({ summoner, ddragon }) {
   }, [gameTime])
 
   const poll = async () => {
-    const status = await window.api.lcu.status()
+    let status
+    try {
+      status = await window.api.lcu.status()
+    } catch { return }
     setConnected(status.connected)
     setPhase(status.phase)
 

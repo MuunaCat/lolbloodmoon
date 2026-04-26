@@ -78,7 +78,8 @@ export default function OverlayApp() {
       try {
         const live = await window.api.lcu.live()
         if (live?.activePlayer) {
-          setIsDead(!!live.activePlayer.isDead)
+          const me = live.allPlayers?.find(p => p.summonerName === live.activePlayer.summonerName)
+          setIsDead(!!(me?.isDead))
           const s = live.activePlayer.scores
           if (s) setLiveStats({
             k: s.kills ?? 0, d: s.deaths ?? 0, a: s.assists ?? 0, cs: s.creepScore ?? 0,
