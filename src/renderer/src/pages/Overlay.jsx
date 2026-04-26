@@ -12,8 +12,8 @@ const TIER_SHORT = {
   GRANDMASTER: 'GM', CHALLENGER: 'C'
 }
 
-const COLLAPSED = [240, 130]
-const EXPANDED  = [270, 370]
+const COLLAPSED = [260, 155]
+const EXPANDED  = [280, 420]
 
 export default function OverlayApp() {
   const [expanded, setExpanded]         = useState(false)
@@ -83,7 +83,9 @@ export default function OverlayApp() {
           const s = live.activePlayer.scores
           if (s) setLiveStats({
             k: s.kills ?? 0, d: s.deaths ?? 0, a: s.assists ?? 0, cs: s.creepScore ?? 0,
-            champ: live.activePlayer.championName || null
+            champ: live.activePlayer.championName || null,
+            gold: Math.floor(live.activePlayer.currentGold ?? 0),
+            level: live.activePlayer.level ?? 1,
           })
         } else {
           setIsDead(false)
@@ -128,27 +130,35 @@ export default function OverlayApp() {
           animation: deadActive ? 'ovPulse 1s ease-in-out infinite' : 'none',
         }}>
           {/* Header */}
-          <div style={{ display: 'flex', alignItems: 'center', padding: '4px 7px', background: deadActive ? 'rgba(200,50,50,0.08)' : 'rgba(200,155,60,0.06)', borderBottom: `1px solid ${deadActive ? 'rgba(200,50,50,0.14)' : 'rgba(200,155,60,0.1)'}`, flexShrink: 0, gap: 4 }}>
-            <span style={{ fontSize: 9, fontWeight: 700, color: deadActive ? '#E55' : gold, letterSpacing: 1, textTransform: 'uppercase', flex: 1 }}>
-              {deadActive ? '☠' : liveStats ? '⚔' : '★'}{' '}
-              {liveStats?.champ
-                ? <span style={{ textTransform: 'none', letterSpacing: 0 }}>{liveStats.champ}</span>
-                : (deadActive ? 'Dead' : 'Challenges')
-              }
-            </span>
-            {liveStats && (
-              <span style={{ fontSize: 9, color: '#aaa', fontVariantNumeric: 'tabular-nums', marginRight: 4 }}>
-                <span style={{ color: '#3DD68C' }}>{liveStats.k}</span>
-                <span style={{ color: '#555' }}>/</span>
-                <span style={{ color: '#E44D4D' }}>{liveStats.d}</span>
-                <span style={{ color: '#555' }}>/</span>
-                <span>{liveStats.a}</span>
-                <span style={{ color: '#666', marginLeft: 4 }}>{liveStats.cs}cs</span>
+          <div style={{ background: deadActive ? 'rgba(200,50,50,0.08)' : 'rgba(200,155,60,0.06)', borderBottom: `1px solid ${deadActive ? 'rgba(200,50,50,0.14)' : 'rgba(200,155,60,0.1)'}`, flexShrink: 0 }}>
+            <div style={{ display: 'flex', alignItems: 'center', padding: '4px 7px 2px', gap: 4 }}>
+              <span style={{ fontSize: 9, fontWeight: 700, color: deadActive ? '#E55' : gold, letterSpacing: 1, textTransform: 'uppercase', flex: 1 }}>
+                {deadActive ? '☠' : liveStats ? '⚔' : '★'}{' '}
+                {liveStats?.champ
+                  ? <span style={{ textTransform: 'none', letterSpacing: 0 }}>{liveStats.champ}</span>
+                  : (deadActive ? 'Dead' : 'Challenges')
+                }
               </span>
-            )}
-            <div style={{ WebkitAppRegion: 'no-drag' }}>
-              <MiniBtn onClick={toggle} title="Expand">▼</MiniBtn>
+              {liveStats && (
+                <span style={{ fontSize: 9, color: '#aaa', fontVariantNumeric: 'tabular-nums' }}>
+                  <span style={{ color: '#3DD68C' }}>{liveStats.k}</span>
+                  <span style={{ color: '#555' }}>/</span>
+                  <span style={{ color: '#E44D4D' }}>{liveStats.d}</span>
+                  <span style={{ color: '#555' }}>/</span>
+                  <span>{liveStats.a}</span>
+                </span>
+              )}
+              <div style={{ WebkitAppRegion: 'no-drag' }}>
+                <MiniBtn onClick={toggle} title="Expand">▼</MiniBtn>
+              </div>
             </div>
+            {liveStats && (
+              <div style={{ display: 'flex', gap: 8, padding: '0 7px 4px', fontVariantNumeric: 'tabular-nums' }}>
+                <span style={{ fontSize: 8, color: '#888' }}>Lv.<span style={{ color: '#ccc' }}>{liveStats.level}</span></span>
+                <span style={{ fontSize: 8, color: '#888' }}>CS:<span style={{ color: '#ccc', marginLeft: 2 }}>{liveStats.cs}</span></span>
+                <span style={{ fontSize: 8, color: '#888' }}>Gold:<span style={{ color: '#C89B3C', marginLeft: 2 }}>{liveStats.gold >= 1000 ? `${(liveStats.gold / 1000).toFixed(1)}k` : liveStats.gold}</span></span>
+              </div>
+            )}
           </div>
 
           {/* Challenge mini-rows */}
@@ -221,6 +231,27 @@ export default function OverlayApp() {
           </div>
         ) : (
           <div style={{ flex: 1, overflowY: 'auto', padding: '4px 6px' }}>
+            {liveStats && (
+              <div style={{ marginBottom: 6, padding: '5px 6px', borderRadius: 5, background: deadActive ? 'rgba(200,50,50,0.07)' : 'rgba(200,155,60,0.05)', border: `1px solid ${deadActive ? 'rgba(200,50,50,0.15)' : 'rgba(200,155,60,0.1)'}` }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 3 }}>
+                  <span style={{ fontSize: 9, fontWeight: 700, color: deadActive ? '#E77' : gold, textTransform: 'uppercase', letterSpacing: 1 }}>
+                    {liveStats.champ || 'In Game'}
+                  </span>
+                  <span style={{ fontSize: 9, color: '#aaa', fontVariantNumeric: 'tabular-nums' }}>
+                    <span style={{ color: '#3DD68C' }}>{liveStats.k}</span>
+                    <span style={{ color: '#555' }}>/</span>
+                    <span style={{ color: '#E44D4D' }}>{liveStats.d}</span>
+                    <span style={{ color: '#555' }}>/</span>
+                    <span>{liveStats.a}</span>
+                  </span>
+                </div>
+                <div style={{ display: 'flex', gap: 10, fontVariantNumeric: 'tabular-nums' }}>
+                  <span style={{ fontSize: 8, color: '#777' }}>Lv <span style={{ color: '#ddd' }}>{liveStats.level}</span></span>
+                  <span style={{ fontSize: 8, color: '#777' }}>CS <span style={{ color: '#ddd' }}>{liveStats.cs}</span></span>
+                  <span style={{ fontSize: 8, color: '#777' }}>Gold <span style={{ color: '#C89B3C' }}>{liveStats.gold >= 1000 ? `${(liveStats.gold / 1000).toFixed(1)}k` : liveStats.gold}</span></span>
+                </div>
+              </div>
+            )}
             {loading && <div style={{ textAlign: 'center', padding: 18, color: '#555', fontSize: 10 }}>Loading...</div>}
             {!loading && pinned.length === 0 && (
               <div style={{ textAlign: 'center', padding: 18, color: '#444', fontSize: 10, lineHeight: 1.8 }}>

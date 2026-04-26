@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from 'react'
+import ChampionModal from '../components/ChampionModal'
 
 const TIER_COLOR = {
   IRON: '#7D6E5E', BRONZE: '#A0522D', SILVER: '#9EA9B0',
@@ -20,6 +21,10 @@ export default function Profile({ summoner, ddragon, appError, onRefresh, onCham
   const [recentMatches, setRecent]        = useState(null)
   const [equippedTitle, setEquippedTitle] = useState(null)
   const [challengeLevel, setChallengeLevel] = useState(null)
+  const [mastery, setMastery]           = useState(null)
+  const [challengeMap, setChallengeMap] = useState({})
+  const [configMap, setConfigMap]       = useState({})
+  const [selectedFreeChamp, setSelectedFreeChamp] = useState(null)
 
   useEffect(() => {
     if (!summoner) return
@@ -36,12 +41,27 @@ export default function Profile({ summoner, ddragon, appError, onRefresh, onCham
 
   useEffect(() => {
     if (!summoner?.puuid) return
+    window.api.getAllMastery(summoner.puuid).then(setMastery).catch(() => {})
+  }, [summoner?.puuid])
+
+  useEffect(() => {
+    if (!summoner?.puuid) return
     Promise.all([
       window.api.getChallenges(summoner.puuid).catch(() => null),
       window.api.getChallengeConfigs().catch(() => null)
     ]).then(([pd, cfgs]) => {
       if (!pd) return
       setChallengeLevel(pd.totalPoints?.level || null)
+      if (pd.challenges) {
+        const map = {}
+        pd.challenges.forEach(c => { map[c.challengeId] = c })
+        setChallengeMap(map)
+      }
+      if (Array.isArray(cfgs)) {
+        const map = {}
+        cfgs.forEach(cfg => { map[cfg.id] = cfg })
+        setConfigMap(map)
+      }
       const titleId = pd.preferences?.title
       if (!titleId || !cfgs) return
       const cfg = cfgs.find(c => c.id === titleId)
@@ -92,12 +112,25 @@ export default function Profile({ summoner, ddragon, appError, onRefresh, onCham
     return { streak: { count: streak, win: lastWin }, highlights: hl }
   }, [recentMatches, summoner?.puuid])
 
+  const masteryById = useMemo(() => {
+    if (!mastery) return {}
+    const map = {}
+    mastery.forEach(m => { map[m.championId] = m })
+    return map
+  }, [mastery])
+
   const rotationChamps = useMemo(() => {
     if (!rotation?.freeChampionIds || !ddragon) return []
     const byId = {}
     Object.values(ddragon.champions).forEach(c => { byId[parseInt(c.key)] = c })
     return rotation.freeChampionIds.map(id => byId[id]).filter(Boolean)
   }, [rotation, ddragon])
+
+  const openFreeChampModal = (champ) => {
+    const champId = parseInt(champ.key)
+    const entry = masteryById[champId] || { championId: champId, championLevel: 0, championPoints: 0 }
+    setSelectedFreeChamp({ entry, champ })
+  }
 
   if (appError) return (
     <div className="page">
@@ -198,22 +231,40 @@ export default function Profile({ summoner, ddragon, appError, onRefresh, onCham
           <div className="profile-rotation-grid">
             {rotationChamps.map(c => {
               const img = `https://ddragon.leagueoflegends.com/cdn/${ddragon.version}/img/champion/${c.image.full}`
+              const champId = parseInt(c.key)
+              const m = masteryById[champId]
               return (
                 <div
                   key={c.key}
                   className="profile-rotation-card"
-                  title={`${c.name} — click to view in Champions`}
-                  onClick={() => onChampionNavigate?.(c.name)}
+                  title={`${c.name} — click for stats`}
+                  onClick={() => openFreeChampModal(c)}
                   style={{ cursor: 'pointer' }}
                 >
                   <img src={img} alt={c.name} className="profile-rotation-img" draggable={false}
                     onError={e => { e.target.style.display = 'none' }} />
                   <div className="profile-rotation-name">{c.name}</div>
+                  {m && m.championLevel > 0 && (
+                    <div className="profile-rotation-mastery">M{m.championLevel}</div>
+                  )}
                 </div>
               )
             })}
           </div>
         </>
+      )}
+
+      {selectedFreeChamp && (
+        <ChampionModal
+          masteryEntry={selectedFreeChamp.entry}
+          champ={selectedFreeChamp.champ}
+          ddragon={ddragon}
+          summoner={summoner}
+          rank={-1}
+          onClose={() => setSelectedFreeChamp(null)}
+          challengeMap={challengeMap}
+          configMap={configMap}
+        />
       )}
     </div>
   )

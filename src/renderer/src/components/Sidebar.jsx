@@ -10,13 +10,20 @@ const NAV = [
 ]
 
 const THEME_CHAMPIONS = {
-  bloodmoon:   { id: 'Jhin',     skin: 2, name: 'Jhin' },
-  void:        { id: 'Malzahar', skin: 0, name: 'Malzahar' },
-  ionia:       { id: 'Ahri',     skin: 0, name: 'Ahri' },
-  demacia:     { id: 'Garen',    skin: 0, name: 'Garen' },
-  noxus:       { id: 'Darius',   skin: 0, name: 'Darius' },
-  freljord:    { id: 'Ashe',     skin: 0, name: 'Ashe' },
-  shadowisles: { id: 'Thresh',   skin: 0, name: 'Thresh' },
+  bloodmoon:   { id: 'Jhin',         skin: 2, name: 'Jhin' },
+  void:        { id: 'Malzahar',     skin: 0, name: 'Malzahar' },
+  ionia:       { id: 'Ahri',         skin: 0, name: 'Ahri' },
+  demacia:     { id: 'Garen',        skin: 0, name: 'Garen' },
+  noxus:       { id: 'Darius',       skin: 0, name: 'Darius' },
+  freljord:    { id: 'Ashe',         skin: 0, name: 'Ashe' },
+  shadowisles: { id: 'Thresh',       skin: 0, name: 'Thresh' },
+  bandlecity:  { id: 'Teemo',        skin: 0, name: 'Teemo' },
+  bilgewater:  { id: 'MissFortune',  skin: 0, name: 'Miss Fortune' },
+  ixtal:       { id: 'Qiyana',       skin: 0, name: 'Qiyana' },
+  piltover:    { id: 'Caitlyn',      skin: 0, name: 'Caitlyn' },
+  shurima:     { id: 'Azir',         skin: 0, name: 'Azir' },
+  targon:      { id: 'Leona',        skin: 0, name: 'Leona' },
+  zaun:        { id: 'Viktor',       skin: 0, name: 'Viktor' },
 }
 
 const PAGE_TIPS = {
@@ -107,6 +114,7 @@ export default function Sidebar({ page, setPage, summoner, ddragon, lcuStatus, t
               onError={e => { if (e.target.src !== fallbackUrl) e.target.src = fallbackUrl }}
             />
           </div>
+          <span className="mascot-hint-label">ℹ page tips</span>
         </div>
       </div>
 

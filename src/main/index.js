@@ -20,7 +20,11 @@ function isLeagueGameRunning() {
 }
 
 function createOverlayWindow() {
-  if (overlayWin && !overlayWin.isDestroyed()) return
+  if (overlayWin && !overlayWin.isDestroyed()) {
+    overlayWin.setAlwaysOnTop(true, 'screen-saver')
+    overlayWin.showInactive()
+    return
+  }
   const saved = store.get('overlayBounds', {})
   const op    = store.get('overlayOpacity', 0.93)
   overlayWin  = new BrowserWindow({
@@ -62,7 +66,12 @@ function startGameWatch() {
   gameWatchTimer = setInterval(async () => {
     if (!overlayWin || overlayWin.isDestroyed()) { stopGameWatch(); return }
     const running = await isLeagueGameRunning()
-    if (!running) destroyOverlayWindow()
+    if (!running) {
+      destroyOverlayWindow()
+    } else {
+      overlayWin.setAlwaysOnTop(true, 'screen-saver')
+      if (!overlayWin.isVisible()) overlayWin.showInactive()
+    }
   }, 4000)
 }
 
@@ -420,7 +429,15 @@ app.whenReady().then(() => {
   ipcMain.handle('shell:open-external', (_, url) => shell.openExternal(url))
 
   // ── Overlay window ────────────────────────────
-  ipcMain.handle('overlay:show', () => { createOverlayWindow(); return true })
+  ipcMain.handle('overlay:show', () => {
+    if (overlayWin && !overlayWin.isDestroyed()) {
+      overlayWin.setAlwaysOnTop(true, 'screen-saver')
+      overlayWin.showInactive()
+    } else {
+      createOverlayWindow()
+    }
+    return true
+  })
   ipcMain.handle('overlay:hide', () => { destroyOverlayWindow(); return true })
 
   ipcMain.handle('overlay:resize', (_, w, h) => {

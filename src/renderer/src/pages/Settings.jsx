@@ -10,6 +10,13 @@ const THEMES = [
   { id: 'noxus',       label: 'Noxus',        desc: 'Iron & blood red' },
   { id: 'freljord',    label: 'Freljord',     desc: 'Crystalline ice blue' },
   { id: 'shadowisles', label: 'Shadow Isles', desc: 'Mist teal & dark' },
+  { id: 'bandlecity',  label: 'Bandle City',  desc: 'Warm amber & yordle' },
+  { id: 'bilgewater',  label: 'Bilgewater',   desc: 'Seafaring teal' },
+  { id: 'ixtal',       label: 'Ixtal',        desc: 'Jungle deep green' },
+  { id: 'piltover',    label: 'Piltover',     desc: 'Clockwork brass' },
+  { id: 'shurima',     label: 'Shurima',      desc: 'Desert sun gold' },
+  { id: 'targon',      label: 'Targon',       desc: 'Celestial indigo' },
+  { id: 'zaun',        label: 'Zaun',         desc: 'Neon acid green' },
 ]
 
 export default function Settings({ onRefresh, onSettingsSaved, theme, onThemeChange }) {
