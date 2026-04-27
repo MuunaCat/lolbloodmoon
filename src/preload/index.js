@@ -14,6 +14,7 @@ contextBridge.exposeInMainWorld('api', {
   getChampionMatchIds: (puuid, champId) => ipcRenderer.invoke('api:champion-match-ids', puuid, champId),
   getChampionRotation: () => ipcRenderer.invoke('api:champion-rotation'),
   getDDragon: () => ipcRenderer.invoke('api:ddragon'),
+  getItems: () => ipcRenderer.invoke('api:items'),
   lcu: {
     status: () => ipcRenderer.invoke('lcu:status'),
     live: () => ipcRenderer.invoke('lcu:live'),

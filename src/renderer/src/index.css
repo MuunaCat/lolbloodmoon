@@ -1844,7 +1844,7 @@ img { -webkit-user-drag: none; }
 
 .astra-splash-hint {
   position: absolute;
-  bottom: 8%;
+  bottom: 4%;
   left: 50%;
   transform: translateX(-50%);
   font-size: 11px;
@@ -1857,7 +1857,7 @@ img { -webkit-user-drag: none; }
 
 .astra-splash-title {
   position: absolute;
-  top: 12%;
+  top: 5%;
   left: 50%;
   transform: translateX(-50%);
   font-family: var(--font-h);

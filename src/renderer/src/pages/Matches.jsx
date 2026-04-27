@@ -234,7 +234,6 @@ export default function Matches({ summoner, ddragon, appError, matchRefreshKey, 
       if (resultFilter === 'Loss' &&  me.win) return false
 
       if (queueFilter !== 'All') {
-        const mode = match.info.gameMode
         const qId  = match.info.queueId
         if (queueFilter === 'Ranked' && ![420, 440].includes(qId))  return false
         if (queueFilter === 'Normal' && ![400, 430].includes(qId))  return false

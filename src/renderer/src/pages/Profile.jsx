@@ -33,7 +33,7 @@ export default function Profile({ summoner, ddragon, appError, onRefresh, onCham
       .then(setRanked)
       .catch(e => setError(e.message))
       .finally(() => setLoading(false))
-  }, [summoner?.id])
+  }, [summoner?.puuid])
 
   useEffect(() => {
     window.api.getChampionRotation().then(setRotation).catch(() => {})

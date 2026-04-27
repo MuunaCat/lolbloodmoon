@@ -39,7 +39,7 @@ function createOverlayWindow() {
   overlayWin.setOpacity(op)
   overlayWin.setAlwaysOnTop(true, 'screen-saver')
   overlayWin.once('ready-to-show', () => {
-    if (overlayWin && !overlayWin.isDestroyed()) overlayWin.show()
+    if (overlayWin && !overlayWin.isDestroyed()) overlayWin.showInactive()
   })
   if (process.env.NODE_ENV === 'development') {
     overlayWin.loadURL(`${process.env.ELECTRON_RENDERER_URL}?overlay=true`)
@@ -325,6 +325,16 @@ app.whenReady().then(() => {
     const version = versions[0]
     const champData = await jsonGet(`https://ddragon.leagueoflegends.com/cdn/${version}/data/en_US/champion.json`)
     return { version, champions: champData.data }
+  })
+
+  let _itemCache = null
+  ipcMain.handle('api:items', async () => {
+    if (_itemCache) return _itemCache
+    const versions = await jsonGet('https://ddragon.leagueoflegends.com/api/versions.json')
+    const version = versions[0]
+    const data = await jsonGet(`https://ddragon.leagueoflegends.com/cdn/${version}/data/en_US/item.json`)
+    if (data?.data) _itemCache = data
+    return data
   })
 
   // ── LCU handlers ─────────────────────────────
